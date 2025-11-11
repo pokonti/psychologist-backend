@@ -3,12 +3,12 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/pokonti/psychologist-backend/user-service/config"
-	"github.com/pokonti/psychologist-backend/user-service/models"
-	"github.com/pokonti/psychologist-backend/user-service/utils"
+	"github.com/pokonti/psychologist-backend/auth-service/config"
+	"github.com/pokonti/psychologist-backend/auth-service/models"
+	"github.com/pokonti/psychologist-backend/auth-service/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pokonti/psychologist-backend/user-service/middleware"
+	"github.com/pokonti/psychologist-backend/auth-service/middleware"
 )
 
 type RegisterInput struct {

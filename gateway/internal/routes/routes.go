@@ -12,6 +12,8 @@ func SetupRoutes(r *gin.Engine) {
 	api.POST("/users/register", proxy.Forward("http://user-service:8081"))
 	api.POST("/users/login", proxy.Forward("http://user-service:8081"))
 
+	api.POST("/auth/register", proxy.Forward("http://auth-service:8082"))
+	api.POST("/auth/login", proxy.Forward("http://auth-service:8082"))
 	// Protected routes
 	//protected := api.Group("", middleware.JWTAuth())
 	//protected.GET("/psychologists", proxy.Forward("http://psychologist-service:8082"))

@@ -8,6 +8,15 @@ services:
       POSTGRES_DB: usersdb
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
 
   user-service:
     build: ./user-service
@@ -21,7 +30,10 @@ services:
       DB_NAME: usersdb
       DB_PORT: 5432
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
 
   gateway:
     build: ./gateway
@@ -32,3 +44,31 @@ services:
       - .env
     depends_on:
       - user-service
+      - auth-service
+    networks:
+        - backend
+
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: usersdb
+      DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+        - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge
