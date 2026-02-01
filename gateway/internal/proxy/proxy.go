@@ -1,30 +1,32 @@
 package proxy
 
 import (
-	"io"
+	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Forward(target string) gin.HandlerFunc {
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		log.Fatalf("invalid proxy target %q: %v", target, err)
+	}
+
+	// creating reverse proxy
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	// director, to see host
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = targetURL.Host
+	}
+
 	return func(c *gin.Context) {
-		req, err := http.NewRequest(c.Request.Method, target+c.Request.RequestURI, c.Request.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-			return
-		}
-
-		req.Header = c.Request.Header
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "Service unavailable"})
-			return
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-		c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+		c.Request = c.Request.WithContext(c)
+		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }

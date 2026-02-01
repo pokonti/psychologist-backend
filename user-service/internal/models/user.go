@@ -10,6 +10,8 @@ type User struct {
 	Email          string    `gorm:"unique;not null" json:"email"`
 	Role           string    `json:"role"` // e.g. "client", "psychologist", "admin"
 	FullName       string    `json:"full_name"`
+	Password       string    `json:"password"`
+	Phone          string    `json:"phone"`
 	Gender         string    `json:"gender"`
 	BirthDate      time.Time `json:"birth_date"`
 	Specialization string    `json:"specialization,omitempty"` // for psychologists

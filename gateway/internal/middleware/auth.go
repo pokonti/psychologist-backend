@@ -30,6 +30,34 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
+		// Extract claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid token claims",
+			})
+			return
+		}
+
+		userID, ok := claims["sub"].(string)
+		if !ok || userID == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Missing user id in token",
+			})
+			return
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok || role == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Missing role in token",
+			})
+			return
+		}
+
+		c.Request.Header.Set("X-User-ID", userID)
+		c.Request.Header.Set("X-User-Role", role)
+
 		c.Next()
 	}
 }
