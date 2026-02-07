@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package userprofile;
+
+option go_package = "github.com/pokonti/psychologist-backend/proto/userprofile;userprofile";
+
+
+service UserProfileService {
+  rpc CreateUserProfile (CreateUserProfileRequest) returns (CreateUserProfileResponse);
+  rpc GetUserProfileByID (GetUserProfileByIDRequest) returns (GetUserProfileByIDResponse);
+}
+
+message CreateUserProfileRequest {
+  string id = 1;        // user id from auth-service
+  string email = 2;
+  string role = 3;
+  string full_name = 4;
+}
+
+message CreateUserProfileResponse {
+  string id = 1;
+}
+
+message GetUserProfileByIDRequest {
+  string id = 1;
+}
+
+message GetUserProfileByIDResponse {
+  string id = 1;
+  string full_name = 2;
+  string gender = 3;
+  string role = 4;
+  string specialization = 5;
+  string email = 6;
+  string phone = 7;
+}

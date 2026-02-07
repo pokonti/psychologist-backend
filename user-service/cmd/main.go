@@ -1,23 +1,55 @@
 package main
 
 import (
+	"log"
+	"net"
+
 	"github.com/gin-gonic/gin"
+	"github.com/pokonti/psychologist-backend/proto/userprofile"
 	"github.com/pokonti/psychologist-backend/user-service/config"
+	grpcserver "github.com/pokonti/psychologist-backend/user-service/internal/grpc"
 	"github.com/pokonti/psychologist-backend/user-service/internal/handlers"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
 	"github.com/pokonti/psychologist-backend/user-service/internal/repository"
 	"github.com/pokonti/psychologist-backend/user-service/routes"
+	"google.golang.org/grpc"
 )
 
 func main() {
 	config.ConnectDB()
 	db := config.DB
-	config.DB.AutoMigrate(&models.User{})
 
-	repo := repository.NewPostgresProfileRepository(db)
-	handler := handlers.NewProfileHandler(repo)
+	if err := db.AutoMigrate(&models.UserProfile{}); err != nil {
+		log.Fatalf("failed to migrate: %v", err)
+	}
 
-	r := gin.Default()
-	routes.SetupRoutes(r, handler)
-	r.Run(":8081")
+	profileRepo := repository.NewGormProfileRepository(db)
+
+	go func() {
+		r := gin.Default()
+		profileHandler := handlers.NewProfileHandler(profileRepo)
+		routes.SetupRoutes(r, profileHandler)
+
+		log.Println("user-service HTTP listening on :8081")
+		if err := r.Run(":8081"); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// gRPC server (for other services)
+	lis, err := net.Listen("tcp", ":9091")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	userprofile.RegisterUserProfileServiceServer(
+		grpcServer,
+		grpcserver.NewUserProfileServer(profileRepo),
+	)
+
+	log.Println("user-service gRPC listening on :9091")
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatal(err)
+	}
 }

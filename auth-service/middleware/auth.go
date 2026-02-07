@@ -17,11 +17,12 @@ func getSecret() string {
 	return secret
 }
 
-func GenerateJWT(email, role string) (string, error) {
+func GenerateJWT(userID, email, role string) (string, error) {
 	claims := jwt.MapClaims{
+		"sub":   userID, // used by gateway as X-User-ID
 		"email": email,
 		"role":  role,
-		"exp":   time.Now().Add(time.Hour * 72).Unix(),
+		"exp":   time.Now().Add(72 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtSecret)

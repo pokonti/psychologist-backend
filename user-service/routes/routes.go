@@ -8,5 +8,5 @@ import (
 
 func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 	r.GET("/users/me", profileHandler.GetMyProfile)
-
+	r.PUT("/users/me", profileHandler.UpdateMyProfile)
 }
