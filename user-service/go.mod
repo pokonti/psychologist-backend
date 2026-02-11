@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/gin-gonic/gin v1.11.0
-	github.com/pokonti/psychologist-backend/proto v0.1.0
+	github.com/pokonti/psychologist-backend/proto v0.0.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 	gorm.io/driver/postgres v1.6.0
@@ -50,3 +50,5 @@ require (
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 )
+
+replace github.com/pokonti/psychologist-backend/proto => ../proto

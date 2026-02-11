@@ -1,32 +1,28 @@
-# ===== Build Stage =====
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copy modules and download dependencies
-COPY go.mod go.sum ./
+COPY proto ./proto
+
+COPY auth-service/go.mod auth-service/go.sum ./auth-service/
+
+WORKDIR /app/auth-service
 RUN go mod download
 
-# Copy source code
-COPY . .
+COPY auth-service/ .
 
-# Build binary for linux/arm64 (needed for M1/M2 Mac)
-RUN GOOS=linux GOARCH=arm64 go build -o auth-service ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o auth-service ./cmd/main.go
 
-# ===== Runtime Stage =====
+# Runtime Stage
 FROM alpine:3.19
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/auth-service ./auth-service
+COPY --from=builder /app/auth-service/auth-service .
 
-# Ensure it is executable
 RUN chmod +x ./auth-service
 
-# Expose service ports
 EXPOSE 8083 9093
 
-# Run the service
 CMD ["./auth-service"]
 

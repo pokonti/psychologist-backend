@@ -1,14 +1,16 @@
 package controllers
 
 import (
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/pokonti/psychologist-backend/auth-service/clients"
 	"github.com/pokonti/psychologist-backend/auth-service/config"
 	"github.com/pokonti/psychologist-backend/auth-service/models"
 	"github.com/pokonti/psychologist-backend/auth-service/utils"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/auth-service/middleware"
@@ -18,7 +20,6 @@ type RegisterInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 	Role     string `json:"role" binding:"required"` // "student", "psychologist"
-	FullName string `json:"full_name" binding:"required"`
 }
 
 type LoginInput struct {
@@ -26,7 +27,11 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func Register(c *gin.Context) {
+type AuthController struct {
+	UserClient userprofile.UserProfileServiceClient
+}
+
+func (ac *AuthController) Register(c *gin.Context) {
 	var input RegisterInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -52,22 +57,30 @@ func Register(c *gin.Context) {
 
 	// Save in auth DB
 	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			return
+		}
+		log.Printf("Failed to create user in DB: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
 	// Call user-service via gRPC to create profile
-	_, err = clients.UserProfileClient.CreateUserProfile(
-		c.Request.Context(),
+	_, err = ac.UserClient.CreateUserProfile(c.Request.Context(),
 		&userprofile.CreateUserProfileRequest{
-			Id:       user.ID,
-			Email:    user.Email,
-			Role:     user.Role,
-			FullName: input.FullName,
+			Id:    user.ID,
+			Email: user.Email,
+			Role:  user.Role,
 		},
 	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user profile"})
+		// If gRPC fails, deleting user from Auth DB so they can try again
+		config.DB.Unscoped().Delete(&user)
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user profile, please try again"})
 		return
 	}
 
@@ -86,7 +99,7 @@ func Register(c *gin.Context) {
 	})
 }
 
-func Login(c *gin.Context) {
+func (ac *AuthController) Login(c *gin.Context) {
 	var input LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {

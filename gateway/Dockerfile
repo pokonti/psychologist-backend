@@ -1,32 +1,27 @@
-# ===== Build Stage =====
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copy modules and download dependencies
-COPY go.mod go.sum ./
+COPY proto ./proto
+
+COPY gateway/go.mod gateway/go.sum ./gateway/
+
+WORKDIR /app/gateway
 RUN go mod download
 
-# Copy source code
-COPY . .
+COPY gateway/ .
 
-# Build binary for linux/arm64 (needed for M1/M2 Mac)
-RUN GOOS=linux GOARCH=arm64 go build -o gateway ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/main.go
 
 # ===== Runtime Stage =====
 FROM alpine:3.19
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/gateway ./gateway
+COPY --from=builder /app/gateway/gateway .
 
-# Ensure it is executable
 RUN chmod +x ./gateway
 
-# Expose service ports
 EXPOSE 8080 9090
 
-# Run the service
 CMD ["./gateway"]
-

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/pokonti/psychologist-backend/auth-service/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -26,6 +27,11 @@ func ConnectDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+	err = DB.AutoMigrate(&models.User{})
+	if err != nil {
+		log.Fatal("Failed to migrate database: ", err)
+	}
+
 	log.Println("Database connected")
 }
 

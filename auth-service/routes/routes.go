@@ -5,8 +5,9 @@ import (
 	"github.com/pokonti/psychologist-backend/auth-service/controllers"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, authController *controllers.AuthController) {
 	api := r.Group("/api/v1/auth")
-	api.POST("/register", controllers.Register)
-	api.POST("/login", controllers.Login)
+
+	api.POST("/register", authController.Register)
+	api.POST("/login", authController.Login)
 }

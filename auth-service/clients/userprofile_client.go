@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"log"
 	"os"
 
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
@@ -9,22 +8,17 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var UserProfileClient userprofile.UserProfileServiceClient
-
-func InitUserProfileClient() {
+// NewUserProfileClient creates a connection and returns the client and the close function
+func NewUserProfileClient() (userprofile.UserProfileServiceClient, *grpc.ClientConn, error) {
 	addr := os.Getenv("USER_SERVICE_GRPC_ADDR")
 	if addr == "" {
-		addr = "user-service:9091" // docker-compose service name + gRPC port
+		addr = "user-service:9091"
 	}
 
-	conn, err := grpc.Dial(
-		addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("failed to connect to user-service gRPC: %v", err)
+		return nil, nil, err
 	}
 
-	UserProfileClient = userprofile.NewUserProfileServiceClient(conn)
-	log.Printf("Connected to user-service gRPC at %s", addr)
+	return userprofile.NewUserProfileServiceClient(conn), conn, nil
 }

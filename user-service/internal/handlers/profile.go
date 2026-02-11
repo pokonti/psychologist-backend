@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"database/sql"
-	"errors"
+	"net/http"
+
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
 	"gorm.io/gorm"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/user-service/internal/repository"

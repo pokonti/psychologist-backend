@@ -3,30 +3,25 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copy modules and download dependencies
-COPY go.mod go.sum ./
+COPY proto ./proto
+
+COPY user-service/go.mod user-service/go.sum ./user-service/
+
+WORKDIR /app/user-service
 RUN go mod download
 
-# Copy source code
-COPY . .
+COPY user-service/ ./
 
-# Build binary for linux/arm64 (needed for M1/M2 Mac)
-RUN GOOS=linux GOARCH=arm64 go build -o user-service ./main.go
+RUN GOOS=linux GOARCH=arm64 go build -o user-service ./cmd/main.go
 
 # ===== Runtime Stage =====
 FROM alpine:3.19
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/user-service ./user-service
-
-# Ensure it is executable
+COPY --from=builder /app/user-service/user-service ./user-service
 RUN chmod +x ./user-service
 
-# Expose service ports
 EXPOSE 8081 9091
-
-# Run the service
 CMD ["./user-service"]
 
