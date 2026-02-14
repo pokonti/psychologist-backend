@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pokonti/psychologist-backend/auth-service/models"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
