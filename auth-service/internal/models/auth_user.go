@@ -8,6 +8,10 @@ type User struct {
 	Password string `gorm:"not null" json:"-"`
 	Role     string `gorm:"not null" json:"role"` // student / psychologist / admin
 
+	VerificationCode string    `json:"-"`
+	CodeExpiresAt    time.Time `json:"-"`
+	IsVerified       bool      `gorm:"default:false" json:"is_verified"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

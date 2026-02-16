@@ -3,12 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/pokonti/psychologist-backend/auth-service/clients"
-	"github.com/pokonti/psychologist-backend/auth-service/config"
-	"github.com/pokonti/psychologist-backend/auth-service/controllers"
-	"github.com/pokonti/psychologist-backend/auth-service/routes"
-
 	"github.com/gin-gonic/gin"
+	"github.com/pokonti/psychologist-backend/auth-service/config"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/clients"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/handlers"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/routes"
 )
 
 func main() {
@@ -25,7 +24,7 @@ func main() {
 	defer conn.Close() // Setup graceful shutdown
 
 	// Init Controller
-	authController := &controllers.AuthController{
+	authController := &handlers.AuthController{
 		UserClient: userClient,
 	}
 
