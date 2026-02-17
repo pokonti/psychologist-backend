@@ -58,6 +58,10 @@ func JWTAuth() gin.HandlerFunc {
 		c.Request.Header.Set("X-User-ID", userID)
 		c.Request.Header.Set("X-User-Role", role)
 
+		// Save in Context for the Gateway's RBAC Middleware
+		c.Set("userID", userID)
+		c.Set("role", role)
+
 		c.Next()
 	}
 }
