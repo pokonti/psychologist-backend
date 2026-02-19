@@ -16,4 +16,5 @@ type Slot struct {
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Version   int       `gorm:"default:1" json:"-"`
 }

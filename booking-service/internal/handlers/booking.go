@@ -58,46 +58,48 @@ func GetAvailableSlots(c *gin.Context) {
 
 // BookSlot Student books a slot
 func BookSlot(c *gin.Context) {
-	studentID := c.GetHeader("X-User-ID")
-	userRole := c.GetHeader("X-User-Role")
 	slotID := c.Param("id")
+	studentID := c.GetHeader("X-User-ID")
 
-	if userRole != "student" {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Access denied. Only students can book appointments.",
-		})
-		return
-	}
-
-	// START TRANSACTION (Prevent Double Booking)
-	tx := config.DB.Begin()
-
+	// 1. Read the slot (Standard read, NO LOCKS)
 	var slot models.Slot
-	// Lock the row specifically for update so no one else can read/write it
-	if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&slot, "id = ?", slotID).Error; err != nil {
-		tx.Rollback()
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Slot not found"})
 		return
 	}
 
+	// 2. Early Check
 	if slot.IsBooked {
-		tx.Rollback()
 		c.JSON(http.StatusConflict, gin.H{"error": "Slot is already booked"})
 		return
 	}
 
-	// Update Slot
-	slot.IsBooked = true
-	slot.StudentID = &studentID
+	// 3. OPTIMISTIC UPDATE
+	// SQL Generated:
+	// UPDATE slots SET is_booked=true, student_id='...', version=2
+	// WHERE id='...' AND version=1
 
-	if err := tx.Save(&slot).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to book slot"})
+	// We increment version manually to invalidate other requests
+	result := config.DB.Model(&models.Slot{}).
+		Where("id = ? AND version = ?", slot.ID, slot.Version).
+		Updates(map[string]interface{}{
+			"is_booked":  true,
+			"student_id": studentID,
+			"version":    slot.Version + 1, // Increment Version
+		})
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
-	// Commit Transaction
-	tx.Commit()
+	// 4. Check if the row was actually touched
+	if result.RowsAffected == 0 {
+		// If 0 rows were updated, it means the Version changed between
+		// step 1 and step 3 (Someone else booked it milliseconds ago)
+		c.JSON(http.StatusConflict, gin.H{"error": "Slot was just booked by someone else"})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Booking successful", "slot": slot})
+	c.JSON(http.StatusOK, gin.H{"message": "Booking successful"})
 }

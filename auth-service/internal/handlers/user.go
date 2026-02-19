@@ -34,6 +34,30 @@ type AuthController struct {
 	UserClient userprofile.UserProfileServiceClient
 }
 
+type RegisterResponse struct {
+	Message string `json:"message"`
+}
+
+type TokenResponse struct {
+	Token   string `json:"token"`
+	Message string `json:"message,omitempty"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// @Summary      Register a new user
+// @Description  Creates a user in Auth DB, sends verification email, and creates profile in User Service
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body RegisterInput true "User Registration Info"
+// @Success      201  {object}  RegisterResponse
+// @Failure      400  {object}  ErrorResponse
+// @Failure      409  {object}  ErrorResponse "User already exists"
+// @Failure      500  {object}  ErrorResponse
+// @Router       /register [post]
 func (ac *AuthController) Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -129,6 +153,16 @@ func (ac *AuthController) Register(c *gin.Context) {
 	})
 }
 
+// @Summary      Verify Email
+// @Description  Verifies the 6-digit code sent to email
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body VerifyInput true "Verification Code"
+// @Success      200  {object}  TokenResponse
+// @Failure      400  {object}  ErrorResponse
+// @Failure      401  {object}  ErrorResponse "Invalid Code"
+// @Router       /verify [post]
 func (ac *AuthController) VerifyEmail(c *gin.Context) {
 	var input VerifyInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -170,6 +204,16 @@ func (ac *AuthController) VerifyEmail(c *gin.Context) {
 	})
 }
 
+// @Summary      Login User
+// @Description  Authenticates user and returns JWT
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body LoginInput true "Login Credentials"
+// @Success      200  {object}  TokenResponse
+// @Failure      400  {object}  ErrorResponse
+// @Failure      401  {object}  ErrorResponse
+// @Router       /login [post]
 func (ac *AuthController) Login(c *gin.Context) {
 	var input LoginInput
 
@@ -199,5 +243,8 @@ func (ac *AuthController) Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User successfully logged in",
+		"token":   token,
+	})
 }
