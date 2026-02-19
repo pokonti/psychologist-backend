@@ -1,0 +1,157 @@
+basePath: /api/v1/auth
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.RegisterInput:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        description: '"student", "psychologist"'
+        type: string
+    required:
+    - email
+    - password
+    - role
+    type: object
+  handlers.RegisterResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.TokenResponse:
+    properties:
+      message:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.VerifyInput:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+host: localhost:8083
+info:
+  contact: {}
+  description: This is the authentication service for the Psychologist Backend.
+  title: Auth Service API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates user and returns JWT
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Login User
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user in Auth DB, sends verification email, and creates
+        profile in User Service
+      parameters:
+      - description: User Registration Info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the 6-digit code sent to email
+      parameters:
+      - description: Verification Code
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VerifyInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Invalid Code
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Verify Email
+      tags:
+      - auth
+swagger: "2.0"
