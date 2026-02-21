@@ -76,6 +76,28 @@ services:
     networks:
         - backend
 
+  booking-service:
+    build:
+      context: .
+      dockerfile: booking-service/Dockerfile
+    container_name: booking-service
+    ports:
+      - "8084:8084"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: usersdb
+      DB_PORT: 5432
+      USER_SERVICE_GRPC_ADDR: "user-service:9091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - backend
+      
 volumes:
   postgres_data:
 

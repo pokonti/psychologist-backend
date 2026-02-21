@@ -22,7 +22,7 @@ func GenerateJWT(userID, email, role string) (string, error) {
 		"sub":   userID, // used by gateway as X-User-ID
 		"email": email,
 		"role":  role,
-		"exp":   time.Now().Add(72 * time.Hour).Unix(),
+		"exp":   time.Now().Add(24 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtSecret)

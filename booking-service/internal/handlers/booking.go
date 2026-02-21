@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -8,15 +9,29 @@ import (
 	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
+	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
 
-type CreateSlotInput struct {
-	StartTime time.Time `json:"start_time" binding:"required"`
+// Helper to parse "2026-01-01"
+func parseDate(dateStr string) (time.Time, error) {
+	return time.Parse("2006-01-02", dateStr)
 }
 
-// CreateSlot Psychologist creates a slot
+// Helper to merge date "2026-01-01" with time "14:30"
+func combineDateAndTime(date time.Time, timeStr string) (time.Time, error) {
+	t, err := time.Parse("15:04", timeStr)
+	if err != nil {
+		return time.Time{}, err
+	}
+	// Return new date with specific hour/minute
+	return time.Date(date.Year(), date.Month(), date.Day(), t.Hour(), t.Minute(), 0, 0, time.UTC), nil
+}
+
+type BookingHandler struct {
+	UserClient userprofile.UserProfileServiceClient
+}
+
 func CreateSlot(c *gin.Context) {
-	// Get User ID from Header
 	psychologistID := c.GetHeader("X-User-ID")
 	role := c.GetHeader("X-User-Role")
 
@@ -25,35 +40,167 @@ func CreateSlot(c *gin.Context) {
 		return
 	}
 
-	var input CreateSlotInput
+	var input models.CreateScheduleInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	slot := models.Slot{
-		ID:             uuid.NewString(),
-		PsychologistID: psychologistID,
-		StartTime:      input.StartTime,
-		IsBooked:       false,
+	// Default duration
+	if input.Duration == 0 {
+		input.Duration = 50
 	}
 
-	if err := config.DB.Create(&slot).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create slot"})
+	// 1. Convert Schedule Slice to a Map for faster lookup
+	// Map Key: DayOfWeek (int), Value: Slice of Time Strings
+	scheduleMap := make(map[int][]string)
+	for _, day := range input.Schedule {
+		scheduleMap[day.DayOfWeek] = day.StartTimes
+	}
+
+	// 2. Parse Start/End Dates
+	currentDate, err := parseDate(input.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date"})
+		return
+	}
+	endDate, err := parseDate(input.EndDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, slot)
+	var slotsToCreate []models.Slot
+
+	// 3. Loop through every calendar date
+	for !currentDate.After(endDate) {
+
+		// Get the weekday of the current iteration (0=Sun, 1=Mon...)
+		currentWeekday := int(currentDate.Weekday())
+
+		// Check if we have times defined for this weekday
+		if times, exists := scheduleMap[currentWeekday]; exists {
+
+			// Loop through the specific times (09:00, 10:00, etc.)
+			for _, timeStr := range times {
+
+				// Combine Date + Time
+				slotTime, err := combineDateAndTime(currentDate, timeStr)
+				if err != nil {
+					continue // Skip invalid time formats
+				}
+
+				slotsToCreate = append(slotsToCreate, models.Slot{
+					ID:             uuid.NewString(),
+					PsychologistID: psychologistID,
+					StartTime:      slotTime,
+					Duration:       input.Duration,
+					IsBooked:       false,
+					Version:        1,
+				})
+			}
+		}
+
+		// Move to next day
+		currentDate = currentDate.AddDate(0, 0, 1)
+	}
+
+	if len(slotsToCreate) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No slots created. Check your dates and schedule."})
+		return
+	}
+
+	// 4. Batch Insert
+	if err := config.DB.Create(&slotsToCreate).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create slots"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Schedule created successfully",
+		"count":   len(slotsToCreate),
+	})
 }
 
-// GetAvailableSlots shows available slots
-func GetAvailableSlots(c *gin.Context) {
-	var slots []models.Slot
-	if err := config.DB.Where("is_booked = ?", false).Find(&slots).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch slots"})
+// GET /slots/calendar?psychologist_id=...&year=2026&month=2
+func (h *BookingHandler) GetCalendarAvailability(c *gin.Context) {
+	psychID := c.Query("psychologist_id")
+	year := c.Query("year")
+	month := c.Query("month")
+
+	if psychID == "" || year == "" || month == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing params"})
 		return
 	}
-	c.JSON(http.StatusOK, slots)
+
+	startDate := fmt.Sprintf("%s-%s-01", year, month)
+	var availableDays []string
+
+	// Postgres Query to find days with at least 1 free slot
+	config.DB.Model(&models.Slot{}).
+		Select("TO_CHAR(start_time, 'YYYY-MM-DD')").
+		Where("psychologist_id = ?", psychID).
+		Where("is_booked = ?", false).
+		Where("start_time >= ? AND start_time < (?::date + '1 month'::interval)", startDate, startDate).
+		Group("TO_CHAR(start_time, 'YYYY-MM-DD')").
+		Find(&availableDays)
+
+	c.JSON(http.StatusOK, gin.H{"available_dates": availableDays})
+}
+
+// GET /slots?psychologist_id=...&date=2026-02-20
+func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
+	psychID := c.Query("psychologist_id")
+	dateStr := c.Query("date")
+
+	if psychID == "" || dateStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing params"})
+		return
+	}
+
+	date, _ := parseDate(dateStr)
+	nextDay := date.Add(24 * time.Hour)
+
+	var slots []models.Slot
+	if err := config.DB.
+		Where("psychologist_id = ?", psychID).
+		Where("is_booked = ?", false).
+		Where("start_time >= ? AND start_time < ?", date, nextDay).
+		Order("start_time asc").
+		Find(&slots).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Error"})
+		return
+	}
+
+	// --- gRPC Enrichment ---
+
+	// Collect ID
+	psychIDList := []string{psychID} // In this case, we only have one ID because of the filter
+
+	// Call User Service
+	grpcResp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{
+		Ids: psychIDList,
+	})
+
+	psychName := "Unknown Specialist"
+	if err == nil && len(grpcResp.Profiles) > 0 {
+		psychName = grpcResp.Profiles[0].FullName
+	}
+
+	// Build Response
+	var response []models.SlotResponse
+	for _, s := range slots {
+		response = append(response, models.SlotResponse{
+			ID:               s.ID,
+			StartTime:        s.StartTime,
+			Duration:         s.Duration,
+			IsBooked:         s.IsBooked,
+			PsychologistID:   s.PsychologistID,
+			PsychologistName: psychName, // <--- Data from gRPC
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // BookSlot Student books a slot

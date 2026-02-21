@@ -8,6 +8,7 @@ option go_package = "github.com/pokonti/psychologist-backend/proto/userprofile;u
 service UserProfileService {
   rpc CreateUserProfile (CreateUserProfileRequest) returns (CreateUserProfileResponse);
   rpc GetUserProfileByID (GetUserProfileByIDRequest) returns (GetUserProfileByIDResponse);
+  rpc GetBatchUserProfiles (GetBatchUserProfilesRequest) returns (GetBatchUserProfilesResponse);
 }
 
 message CreateUserProfileRequest {
@@ -33,4 +34,20 @@ message GetUserProfileByIDResponse {
   string specialization = 5;
   string email = 6;
   string phone = 7;
+}
+
+// Request: List of UUIDs
+message GetBatchUserProfilesRequest {
+  repeated string ids = 1;
+}
+
+// A lighter user object for lists
+message BasicUserProfile {
+  string id = 1;
+  string full_name = 2;
+  // Add photo_url here later if you have it
+}
+
+message GetBatchUserProfilesResponse {
+  repeated BasicUserProfile profiles = 1;
 }
