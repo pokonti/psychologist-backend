@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"log"
@@ -26,10 +26,28 @@ func main() {
 	}
 
 	// Routes
-	r.POST("/slots", handlers.CreateSlot) // Psych only
-	r.GET("/slots", h.GetAvailableSlots)
-	r.GET("/slots/calendar", h.GetCalendarAvailability) // Get valid days for month
-	r.POST("/slots/:id/book", handlers.BookSlot)        // Student only
+	// The Gateway sends the full path "/api/v1/...", so we must listen for it.
+	api := r.Group("/api/v1")
+	{
+		// Public / Shared Routes (Get Slots)
+		// Gateway: GET /api/v1/slots
+		api.GET("/slots", h.GetAvailableSlots)
+		api.GET("/slots/calendar", h.GetCalendarAvailability)
+
+		// Psychologist Routes
+		// Gateway: POST /api/v1/psychologist/slots
+		psych := api.Group("/psychologist")
+		{
+			psych.POST("/slots", handlers.CreateSlot)
+		}
+
+		// Student Routes
+		// Gateway: POST /api/v1/student/slots/:id/book
+		student := api.Group("/student")
+		{
+			student.POST("/slots/:id/book", handlers.BookSlot)
+		}
+	}
 
 	log.Println("Booking Service running on port 8084")
 	r.Run(":8084")
