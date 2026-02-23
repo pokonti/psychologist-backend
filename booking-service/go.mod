@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
-	github.com/pokonti/psychologist-backend/proto v0.0.0-20260219070813-a875ea7f726d
+	github.com/pokonti/psychologist-backend/proto v0.0.0
 	google.golang.org/grpc v1.79.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
