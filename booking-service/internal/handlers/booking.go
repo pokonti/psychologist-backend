@@ -31,6 +31,10 @@ type BookingHandler struct {
 	UserClient userprofile.UserProfileServiceClient
 }
 
+type BookSlotInput struct {
+	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
+}
+
 func CreateSlot(c *gin.Context) {
 	psychologistID := c.GetHeader("X-User-ID")
 	role := c.GetHeader("X-User-Role")
@@ -172,8 +176,6 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	// --- gRPC Enrichment ---
-
 	// Collect ID
 	psychIDList := []string{psychID} // In this case, we only have one ID because of the filter
 
@@ -208,7 +210,12 @@ func BookSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
-	// 1. Read the slot (Standard read, NO LOCKS)
+	var input BookSlotInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	var slot models.Slot
 	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Slot not found"})
@@ -230,9 +237,10 @@ func BookSlot(c *gin.Context) {
 	result := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":  true,
-			"student_id": studentID,
-			"version":    slot.Version + 1, // Increment Version
+			"is_booked":    true,
+			"student_id":   studentID,
+			"booking_type": input.BookingType,
+			"version":      slot.Version + 1, // Increment Version
 		})
 
 	if result.Error != nil {
