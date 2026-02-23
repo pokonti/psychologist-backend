@@ -93,11 +93,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      user-service:
-        condition: service_started
+#      user-service:
+#        condition: service_healthy
     networks:
       - backend
-      
+
 volumes:
   postgres_data:
 

@@ -9,7 +9,7 @@ COPY booking-service/go.mod booking-service/go.sum ./booking-service/
 WORKDIR /app/booking-service
 RUN go mod download
 
-COPY booking-service/ ./
+COPY booking-service/ .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o booking-service ./cmd/main.go
 
