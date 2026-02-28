@@ -17,6 +17,12 @@ definitions:
       specialization:
         type: string
     type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Invalid start_date
+        type: string
+    type: object
   models.UserProfile:
     properties:
       auth_id:
@@ -60,47 +66,18 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:8081
+host: localhost:8080
 info:
   contact: {}
   description: User profiles and psychologist directory for KBTU counseling system.
   title: User Service API
   version: "1.0"
 paths:
-  /psychologists:
-    get:
-      description: Returns a list of all users whose role is 'psychologist'.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.UserProfile'
-            type: array
-        "500":
-          description: database error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List all psychologists
-      tags:
-      - psychologists
   /users/me:
     get:
       description: Returns the profile of the currently authenticated user. In production,
         the gateway injects X-User-ID based on the JWT. When calling the service directly
         (e.g. via Swagger), you must provide X-User-ID manually.
-      parameters:
-      - description: User ID (UUID from JWT sub)
-        in: header
-        name: X-User-ID
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -111,29 +88,26 @@ paths:
         "401":
           description: missing user id
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
         "404":
           description: profile not found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: internal error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get current user's profile
       tags:
       - profile
     put:
       consumes:
       - application/json
-      description: Partially update the profile of the currently authenticated user.
-        Only provided fields will be changed.
+      description: Partially update the profile of the current user. In production,
+        the gateway injects X-User-ID from JWT. When calling user-service directly
+        (Swagger), provide X-User-ID manually.
       parameters:
       - description: Fields to update
         in: body
@@ -151,26 +125,41 @@ paths:
         "400":
           description: invalid request body
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
         "401":
           description: missing user id
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: failed to update profile
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update current user's profile
       tags:
       - profile
+  /users/psychologists:
+    get:
+      description: Returns a list of all users whose role is 'psychologist'.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserProfile'
+            type: array
+        "500":
+          description: database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all psychologists
+      tags:
+      - psychologists
 securityDefinitions:
   BearerAuth:
     in: header

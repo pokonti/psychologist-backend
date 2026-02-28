@@ -1,0 +1,399 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Slot scheduling and booking system for KBTU counseling platform.",
+        "title": "KBTU Psychologist Booking Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/psychologist/slots": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist generates multiple slots based on a weekly schedule pattern between start_date and end_date.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Create schedule slots for a psychologist",
+                "parameters": [
+                    {
+                        "description": "Schedule configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateScheduleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ScheduleCreatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "validation error or no slots created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "only psychologists can create slots",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slots": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns free slots for a given psychologist and date, enriched with psychologist name via gRPC.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slots"
+                ],
+                "summary": "Get available slots for a specific date",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Psychologist ID",
+                        "name": "psychologist_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date in format YYYY-MM-DD",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SlotResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "missing params",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "database or gRPC error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slots/calendar": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns dates within the specified month where the psychologist has at least one free slot.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slots"
+                ],
+                "summary": "Get calendar days with available slots",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Psychologist ID",
+                        "name": "psychologist_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Year (e.g. 2026)",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Month (1-12 or 01-12)",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CalendarAvailabilityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "missing params",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/student/slots/{id}/book": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student books a specific slot. Uses optimistic locking on the version field to avoid double-booking.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Book a slot as a student",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Booking type (online/offline)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BookSlotInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "slot already booked or just booked",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.BookSlotInput": {
+            "type": "object",
+            "required": [
+                "booking_type"
+            ],
+            "properties": {
+                "booking_type": {
+                    "type": "string",
+                    "enum": [
+                        "online",
+                        "offline"
+                    ]
+                }
+            }
+        },
+        "models.CalendarAvailabilityResponse": {
+            "type": "object",
+            "properties": {
+                "available_dates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "2026-02-10",
+                        "2026-02-14"
+                    ]
+                }
+            }
+        },
+        "models.CreateScheduleInput": {
+            "type": "object",
+            "required": [
+                "end_date",
+                "schedule",
+                "start_date"
+            ],
+            "properties": {
+                "duration": {
+                    "description": "50 (default)",
+                    "type": "integer"
+                },
+                "end_date": {
+                    "description": "\"2026-03-20\"",
+                    "type": "string"
+                },
+                "schedule": {
+                    "description": "The template",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DaySchedule"
+                    }
+                },
+                "start_date": {
+                    "description": "\"2026-02-20\"",
+                    "type": "string"
+                }
+            }
+        },
+        "models.DaySchedule": {
+            "type": "object",
+            "required": [
+                "day_of_week",
+                "start_times"
+            ],
+            "properties": {
+                "day_of_week": {
+                    "description": "1=Mon, 2=Tue...",
+                    "type": "integer"
+                },
+                "start_times": {
+                    "description": "[\"09:00\", \"10:00\", \"14:00\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid start_date"
+                }
+            }
+        },
+        "models.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Booking successful"
+                }
+            }
+        },
+        "models.ScheduleCreatedResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 24
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Schedule created successfully"
+                }
+            }
+        },
+        "models.SlotResponse": {
+            "type": "object",
+            "properties": {
+                "booking_type": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_booked": {
+                    "type": "boolean"
+                },
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
+                    "description": "Enriched via gRPC",
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

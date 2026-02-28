@@ -28,3 +28,7 @@ type UserProfile struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft Delete
 }
+
+type ErrorResponse struct {
+	Error string `json:"error" example:"Invalid start_date"`
+}

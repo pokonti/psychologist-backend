@@ -1,0 +1,267 @@
+basePath: /api/v1
+definitions:
+  models.BookSlotInput:
+    properties:
+      booking_type:
+        enum:
+        - online
+        - offline
+        type: string
+    required:
+    - booking_type
+    type: object
+  models.CalendarAvailabilityResponse:
+    properties:
+      available_dates:
+        example:
+        - "2026-02-10"
+        - "2026-02-14"
+        items:
+          type: string
+        type: array
+    type: object
+  models.CreateScheduleInput:
+    properties:
+      duration:
+        description: 50 (default)
+        type: integer
+      end_date:
+        description: '"2026-03-20"'
+        type: string
+      schedule:
+        description: The template
+        items:
+          $ref: '#/definitions/models.DaySchedule'
+        type: array
+      start_date:
+        description: '"2026-02-20"'
+        type: string
+    required:
+    - end_date
+    - schedule
+    - start_date
+    type: object
+  models.DaySchedule:
+    properties:
+      day_of_week:
+        description: 1=Mon, 2=Tue...
+        type: integer
+      start_times:
+        description: '["09:00", "10:00", "14:00"]'
+        items:
+          type: string
+        type: array
+    required:
+    - day_of_week
+    - start_times
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Invalid start_date
+        type: string
+    type: object
+  models.MessageResponse:
+    properties:
+      message:
+        example: Booking successful
+        type: string
+    type: object
+  models.ScheduleCreatedResponse:
+    properties:
+      count:
+        example: 24
+        type: integer
+      message:
+        example: Schedule created successfully
+        type: string
+    type: object
+  models.SlotResponse:
+    properties:
+      booking_type:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: string
+      is_booked:
+        type: boolean
+      psychologist_id:
+        type: string
+      psychologist_name:
+        description: Enriched via gRPC
+        type: string
+      start_time:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Slot scheduling and booking system for KBTU counseling platform.
+  title: KBTU Psychologist Booking Service API
+  version: "1.0"
+paths:
+  /psychologist/slots:
+    post:
+      consumes:
+      - application/json
+      description: Psychologist generates multiple slots based on a weekly schedule
+        pattern between start_date and end_date.
+      parameters:
+      - description: Schedule configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateScheduleInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ScheduleCreatedResponse'
+        "400":
+          description: validation error or no slots created
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: only psychologists can create slots
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create schedule slots for a psychologist
+      tags:
+      - psychologist-slots
+  /slots:
+    get:
+      description: Returns free slots for a given psychologist and date, enriched
+        with psychologist name via gRPC.
+      parameters:
+      - description: Psychologist ID
+        in: query
+        name: psychologist_id
+        required: true
+        type: string
+      - description: Date in format YYYY-MM-DD
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SlotResponse'
+            type: array
+        "400":
+          description: missing params
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: database or gRPC error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get available slots for a specific date
+      tags:
+      - slots
+  /slots/calendar:
+    get:
+      description: Returns dates within the specified month where the psychologist
+        has at least one free slot.
+      parameters:
+      - description: Psychologist ID
+        in: query
+        name: psychologist_id
+        required: true
+        type: string
+      - description: Year (e.g. 2026)
+        in: query
+        name: year
+        required: true
+        type: string
+      - description: Month (1-12 or 01-12)
+        in: query
+        name: month
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CalendarAvailabilityResponse'
+        "400":
+          description: missing params
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get calendar days with available slots
+      tags:
+      - slots
+  /student/slots/{id}/book:
+    post:
+      consumes:
+      - application/json
+      description: Student books a specific slot. Uses optimistic locking on the version
+        field to avoid double-booking.
+      parameters:
+      - description: Slot ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Booking type (online/offline)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BookSlotInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: slot already booked or just booked
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Book a slot as a student
+      tags:
+      - student-booking
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

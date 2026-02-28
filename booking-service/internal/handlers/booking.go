@@ -12,29 +12,23 @@ import (
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
 
-// Helper to parse "2026-01-01"
-func parseDate(dateStr string) (time.Time, error) {
-	return time.Parse("2006-01-02", dateStr)
-}
-
-// Helper to merge date "2026-01-01" with time "14:30"
-func combineDateAndTime(date time.Time, timeStr string) (time.Time, error) {
-	t, err := time.Parse("15:04", timeStr)
-	if err != nil {
-		return time.Time{}, err
-	}
-	// Return new date with specific hour/minute
-	return time.Date(date.Year(), date.Month(), date.Day(), t.Hour(), t.Minute(), 0, 0, time.UTC), nil
-}
-
 type BookingHandler struct {
 	UserClient userprofile.UserProfileServiceClient
 }
 
-type BookSlotInput struct {
-	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
-}
-
+// CreateSlot godoc
+// @Summary      Create schedule slots for a psychologist
+// @Description  Psychologist generates multiple slots based on a weekly schedule pattern between start_date and end_date.
+// @Tags         psychologist-slots
+// @Accept       json
+// @Produce      json
+// @Security BearerAuth
+// @Param        request      body    models.CreateScheduleInput  true  "Schedule configuration"
+// @Success      201 {object}   models.ScheduleCreatedResponse
+// @Failure      400  {object}  models.ErrorResponse              "validation error or no slots created"
+// @Failure      403  {object}  models.ErrorResponse              "only psychologists can create slots"
+// @Failure      500  {object}  models.ErrorResponse              "database error"
+// @Router       /psychologist/slots [post]
 func CreateSlot(c *gin.Context) {
 	psychologistID := c.GetHeader("X-User-ID")
 	role := c.GetHeader("X-User-Role")
@@ -65,12 +59,16 @@ func CreateSlot(c *gin.Context) {
 	// 2. Parse Start/End Dates
 	currentDate, err := parseDate(input.StartDate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: "Invalid start_date",
+		})
 		return
 	}
 	endDate, err := parseDate(input.EndDate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: "Invalid end_date",
+		})
 		return
 	}
 
@@ -110,30 +108,49 @@ func CreateSlot(c *gin.Context) {
 	}
 
 	if len(slotsToCreate) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No slots created. Check your dates and schedule."})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: "No slots created. Check your dates and schedule.",
+		})
 		return
 	}
 
 	// 4. Batch Insert
 	if err := config.DB.Create(&slotsToCreate).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create slots"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Failed to create slots",
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Schedule created successfully",
-		"count":   len(slotsToCreate),
+	c.JSON(http.StatusCreated, models.ScheduleCreatedResponse{
+		Message: "Schedule created successfully",
+		Count:   len(slotsToCreate),
 	})
 }
 
 // GET /slots/calendar?psychologist_id=...&year=2026&month=2
+
+// GetCalendarAvailability godoc
+// @Summary      Get calendar days with available slots
+// @Description  Returns dates within the specified month where the psychologist has at least one free slot.
+// @Tags         slots
+// @Produce      json
+// @Security BearerAuth
+// @Param        psychologist_id  query   string  true  "Psychologist ID"
+// @Param        year             query   string  true  "Year (e.g. 2026)"
+// @Param        month            query   string  true  "Month (1-12 or 01-12)"
+// @Success      200 {object}     models.CalendarAvailabilityResponse
+// @Failure      400  {object}    models.ErrorResponse "missing params"
+// @Router       /slots/calendar [get]
 func (h *BookingHandler) GetCalendarAvailability(c *gin.Context) {
 	psychID := c.Query("psychologist_id")
 	year := c.Query("year")
 	month := c.Query("month")
 
 	if psychID == "" || year == "" || month == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing params"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: "Missing params",
+		})
 		return
 	}
 
@@ -149,16 +166,33 @@ func (h *BookingHandler) GetCalendarAvailability(c *gin.Context) {
 		Group("TO_CHAR(start_time, 'YYYY-MM-DD')").
 		Find(&availableDays)
 
-	c.JSON(http.StatusOK, gin.H{"available_dates": availableDays})
+	c.JSON(http.StatusOK, models.CalendarAvailabilityResponse{
+		AvailableDates: availableDays,
+	})
 }
 
 // GET /slots?psychologist_id=...&date=2026-02-20
+
+// GetAvailableSlots godoc
+// @Summary      Get available slots for a specific date
+// @Description  Returns free slots for a given psychologist and date, enriched with psychologist name via gRPC.
+// @Tags         slots
+// @Produce      json
+// @Security BearerAuth
+// @Param        psychologist_id  query   string  true  "Psychologist ID"
+// @Param        date             query   string  true  "Date in format YYYY-MM-DD"
+// @Success      200 {array} models.SlotResponse
+// @Failure      400  {object}  models.ErrorResponse "missing params"
+// @Failure      500  {object}  models.ErrorResponse "database or gRPC error"
+// @Router       /slots [get]
 func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 	psychID := c.Query("psychologist_id")
 	dateStr := c.Query("date")
 
 	if psychID == "" || dateStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing params"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: "Missing params",
+		})
 		return
 	}
 
@@ -172,7 +206,9 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 		Where("start_time >= ? AND start_time < ?", date, nextDay).
 		Order("start_time asc").
 		Find(&slots).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Error"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "DB Error",
+		})
 		return
 	}
 
@@ -184,7 +220,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 		Ids: psychIDList,
 	})
 
-	psychName := "Unknown Specialist"
+	psychName := "-"
 	if err == nil && len(grpcResp.Profiles) > 0 {
 		psychName = grpcResp.Profiles[0].FullName
 	}
@@ -198,19 +234,33 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 			Duration:         s.Duration,
 			IsBooked:         s.IsBooked,
 			PsychologistID:   s.PsychologistID,
-			PsychologistName: psychName, // <--- Data from gRPC
+			PsychologistName: psychName,
 		})
 	}
 
 	c.JSON(http.StatusOK, response)
 }
 
-// BookSlot Student books a slot
+// BookSlot godoc
+// @Summary      Book a slot as a student
+// @Description  Student books a specific slot. Uses optimistic locking on the version field to avoid double-booking.
+// @Tags         student-booking
+// @Accept       json
+// @Produce      json
+// @Security BearerAuth
+// @Param        id         path    string         true  "Slot ID"
+// @Param        request    body    models.BookSlotInput  true  "Booking type (online/offline)"
+// @Success 200 {object} models.MessageResponse
+// @Failure      400  {object}  models.ErrorResponse "invalid request body"
+// @Failure      404  {object}  models.ErrorResponse "slot not found"
+// @Failure      409  {object}  models.ErrorResponse "slot already booked or just booked"
+// @Failure      500  {object}  models.ErrorResponse "database error"
+// @Router       /student/slots/{id}/book [post]
 func BookSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
-	var input BookSlotInput
+	var input models.BookSlotInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -218,21 +268,22 @@ func BookSlot(c *gin.Context) {
 
 	var slot models.Slot
 	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Slot not found"})
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Error: "Slot not found",
+		})
 		return
 	}
 
-	// 2. Early Check
 	if slot.IsBooked {
-		c.JSON(http.StatusConflict, gin.H{"error": "Slot is already booked"})
+		c.JSON(http.StatusConflict, models.ErrorResponse{
+			Error: "Slot is already booked",
+		})
 		return
 	}
 
-	// 3. OPTIMISTIC UPDATE
-	// SQL Generated:
+	// OPTIMISTIC UPDATE
 	// UPDATE slots SET is_booked=true, student_id='...', version=2
 	// WHERE id='...' AND version=1
-
 	// We increment version manually to invalidate other requests
 	result := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
@@ -244,17 +295,23 @@ func BookSlot(c *gin.Context) {
 		})
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Database error",
+		})
 		return
 	}
 
-	// 4. Check if the row was actually touched
+	// Check if the row was actually touched
 	if result.RowsAffected == 0 {
 		// If 0 rows were updated, it means the Version changed between
 		// step 1 and step 3 (Someone else booked it milliseconds ago)
-		c.JSON(http.StatusConflict, gin.H{"error": "Slot was just booked by someone else"})
+		c.JSON(http.StatusConflict, models.ErrorResponse{
+			Error: "Slot was just booked by someone else",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Booking successful"})
+	c.JSON(http.StatusOK, models.MessageResponse{
+		Message: "Booking successful",
+	})
 }

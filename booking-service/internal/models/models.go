@@ -42,3 +42,26 @@ type SlotResponse struct {
 	PsychologistID   string    `json:"psychologist_id"`
 	PsychologistName string    `json:"psychologist_name"` // Enriched via gRPC
 }
+
+// ErrorResponse represents a standard API error format.
+type ErrorResponse struct {
+	Error string `json:"error" example:"Invalid start_date"`
+}
+type MessageResponse struct {
+	Message string `json:"message" example:"Booking successful"`
+}
+
+// ScheduleCreatedResponse represents the result of schedule generation.
+type ScheduleCreatedResponse struct {
+	Message string `json:"message" example:"Schedule created successfully"`
+	Count   int    `json:"count" example:"24"`
+}
+
+// CalendarAvailabilityResponse represents available days in a month.
+type CalendarAvailabilityResponse struct {
+	AvailableDates []string `json:"available_dates" example:"2026-02-10,2026-02-14"`
+}
+
+type BookSlotInput struct {
+	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
+}

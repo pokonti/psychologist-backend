@@ -57,3 +57,26 @@ func (s *UserProfileServer) GetUserProfileByID(ctx context.Context, req *userpro
 		Phone:          p.Phone,
 	}, nil
 }
+
+func (s *UserProfileServer) GetBatchUserProfiles(ctx context.Context, req *userprofile.GetBatchUserProfilesRequest) (*userprofile.GetBatchUserProfilesResponse, error) {
+	if len(req.Ids) == 0 {
+		return &userprofile.GetBatchUserProfilesResponse{}, nil
+	}
+
+	// 1. Call the new Repository method
+	users, err := s.Repo.GetByIDs(ctx, req.Ids)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "database error")
+	}
+
+	// 2. Map DB models to Proto models
+	var profiles []*userprofile.BasicUserProfile
+	for _, u := range users {
+		profiles = append(profiles, &userprofile.BasicUserProfile{
+			Id:       u.ID,
+			FullName: u.FullName,
+		})
+	}
+
+	return &userprofile.GetBatchUserProfilesResponse{Profiles: profiles}, nil
+}

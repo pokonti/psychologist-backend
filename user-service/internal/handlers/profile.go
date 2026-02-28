@@ -23,26 +23,32 @@ func NewProfileHandler(repo repository.ProfileRepository) *ProfileHandler {
 // @Description  Returns the profile of the currently authenticated user. In production, the gateway injects X-User-ID based on the JWT. When calling the service directly (e.g. via Swagger), you must provide X-User-ID manually.
 // @Tags         profile
 // @Produce      json
-// @Param        X-User-ID  header    string  true  "User ID (UUID from JWT sub)"
-// @Success      200  {object}  models.UserProfile
-// @Failure      401  {object}  map[string]string  "missing user id"
-// @Failure      404  {object}  map[string]string  "profile not found"
-// @Failure      500  {object}  map[string]string  "internal error"
+// @Security     BearerAuth
+// @Success      200        {object}  models.UserProfile
+// @Failure      401        {object}  models.ErrorResponse  "missing user id"
+// @Failure      404        {object}  models.ErrorResponse  "profile not found"
+// @Failure      500        {object}  models.ErrorResponse  "internal error"
 // @Router       /users/me [get]
 func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user id"})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Error: "Missing user id",
+		})
 		return
 	}
 
 	profile, err := h.Repo.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			c.JSON(http.StatusNotFound, models.ErrorResponse{
+				Error: "Profile not found",
+			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -65,33 +71,38 @@ type UpdateProfileRequest struct {
 // @Tags         profile
 // @Accept       json
 // @Produce      json
-// @Param        X-User-ID  header    string               true  "User ID (UUID from JWT sub)"
+// @Security     BearerAuth
 // @Param        request    body      UpdateProfileRequest true  "Fields to update"
 // @Success      200        {object}  models.UserProfile
-// @Failure      400        {object}  map[string]string  "invalid request body"
-// @Failure      401        {object}  map[string]string  "missing user id"
-// @Failure      500        {object}  map[string]string  "failed to update profile"
+// @Failure      400        {object}  models.ErrorResponse "invalid request body"
+// @Failure      401        {object}  models.ErrorResponse "missing user id"
+// @Failure      500        {object}  models.ErrorResponse "failed to update profile"
 // @Router       /users/me [put]
 func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user id"})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Error: "Missing user id",
+		})
 		return
 	}
 
 	var req UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	profile, err := h.Repo.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// Option: create profile automatically if not exists
 			profile = &models.UserProfile{ID: userID}
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error: err.Error(),
+			})
 			return
 		}
 	}
@@ -119,7 +130,9 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	}
 
 	if err := h.Repo.Update(c.Request.Context(), profile); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Failed to update profile:" + err.Error(),
+		})
 		return
 	}
 
@@ -132,13 +145,15 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 // @Tags         psychologists
 // @Produce      json
 // @Success      200  {array}   models.UserProfile
-// @Failure      500  {object}  map[string]string  "database error"
+// @Failure      500  {object}  models.ErrorResponse "database error"
 // @Security     BearerAuth
-// @Router       /psychologists [get]
+// @Router       /users/psychologists [get]
 func (h *ProfileHandler) GetAllPsychologists(c *gin.Context) {
 	profiles, err := h.Repo.GetAllPsychologists(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Database error:" + err.Error(),
+		})
 		return
 	}
 	c.JSON(http.StatusOK, profiles)

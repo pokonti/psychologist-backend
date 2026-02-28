@@ -17,7 +17,7 @@ func SetupRoutes(r *gin.Engine) {
 	protected := api.Group("", middleware.JWTAuth())
 	protected.GET("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.PUT("/users/me", proxy.Forward("http://user-service:8081"))
-	protected.GET("/psychologists", proxy.Forward("http://user-service:8081"))
+	protected.GET("/users/psychologists", proxy.Forward("http://user-service:8081"))
 
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))
 	protected.GET("/slots/calendar", proxy.Forward("http://booking-service:8084"))
@@ -35,5 +35,15 @@ func SetupRoutes(r *gin.Engine) {
 		// Book an appointment
 		studentOnly.POST("/slots/:id/book", proxy.Forward("http://booking-service:8084"))
 	}
+
+	// Proxy Swagger UIs
+	// Access Auth docs at: http://localhost:8080/docs/auth/index.html
+	r.Any("/docs/auth/*any", proxy.Forward("http://auth-service:8083/swagger"))
+
+	// Access Booking docs at: http://localhost:8080/docs/booking/index.html
+	r.Any("/docs/booking/*any", proxy.Forward("http://booking-service:8084/swagger"))
+
+	// Access User docs at: http://localhost:8080/docs/user/index.html
+	r.Any("/docs/user/*any", proxy.Forward("http://user-service:8081/swagger"))
 
 }

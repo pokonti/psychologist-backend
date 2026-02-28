@@ -15,7 +15,5 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 		api.PUT("/me", profileHandler.UpdateMyProfile)
 		api.GET("/psychologists", profileHandler.GetAllPsychologists)
 	}
-	// Swagger Route
-	// Access at: http://localhost:8081/swagger/index.html
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

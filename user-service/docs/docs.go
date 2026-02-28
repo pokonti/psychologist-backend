@@ -15,45 +15,13 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/psychologists": {
+        "/users/me": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a list of all users whose role is 'psychologist'.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "psychologists"
-                ],
-                "summary": "List all psychologists",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.UserProfile"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "database error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/me": {
-            "get": {
                 "description": "Returns the profile of the currently authenticated user. In production, the gateway injects X-User-ID based on the JWT. When calling the service directly (e.g. via Swagger), you must provide X-User-ID manually.",
                 "produces": [
                     "application/json"
@@ -62,15 +30,6 @@ const docTemplate = `{
                     "profile"
                 ],
                 "summary": "Get current user's profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID (UUID from JWT sub)",
-                        "name": "X-User-ID",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -81,28 +40,19 @@ const docTemplate = `{
                     "401": {
                         "description": "missing user id",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "profile not found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "internal error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -113,7 +63,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Partially update the profile of the currently authenticated user. Only provided fields will be changed.",
+                "description": "Partially update the profile of the current user. In production, the gateway injects X-User-ID from JWT. When calling user-service directly (Swagger), provide X-User-ID manually.",
                 "consumes": [
                     "application/json"
                 ],
@@ -145,28 +95,53 @@ const docTemplate = `{
                     "400": {
                         "description": "invalid request body",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "missing user id",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "failed to update profile",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/psychologists": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of all users whose role is 'psychologist'.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologists"
+                ],
+                "summary": "List all psychologists",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserProfile"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -197,6 +172,15 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid start_date"
                 }
             }
         },
@@ -276,7 +260,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8081",
+	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "User Service API",
