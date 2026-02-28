@@ -1,0 +1,179 @@
+basePath: /api/v1
+definitions:
+  handlers.UpdateProfileRequest:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      full_name:
+        type: string
+      gender:
+        type: string
+      notification_channel:
+        type: string
+      phone:
+        type: string
+      specialization:
+        type: string
+    type: object
+  models.UserProfile:
+    properties:
+      auth_id:
+        description: reference to auth-service user
+        type: integer
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      birth_date:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      experience:
+        type: integer
+      full_name:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      notification_channel:
+        description: '"email", "whatsapp", "none"'
+        type: string
+      password:
+        type: string
+      phone_number:
+        type: string
+      rating:
+        type: number
+      role:
+        description: e.g. "client", "psychologist", "admin"
+        type: string
+      specialization:
+        description: for psychologists
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: User profiles and psychologist directory for KBTU counseling system.
+  title: User Service API
+  version: "1.0"
+paths:
+  /psychologists:
+    get:
+      description: Returns a list of all users whose role is 'psychologist'.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserProfile'
+            type: array
+        "500":
+          description: database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all psychologists
+      tags:
+      - psychologists
+  /users/me:
+    get:
+      description: Returns the profile of the currently authenticated user. In production,
+        the gateway injects X-User-ID based on the JWT. When calling the service directly
+        (e.g. via Swagger), you must provide X-User-ID manually.
+      parameters:
+      - description: User ID (UUID from JWT sub)
+        in: header
+        name: X-User-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserProfile'
+        "401":
+          description: missing user id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: profile not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get current user's profile
+      tags:
+      - profile
+    put:
+      consumes:
+      - application/json
+      description: Partially update the profile of the currently authenticated user.
+        Only provided fields will be changed.
+      parameters:
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserProfile'
+        "400":
+          description: invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: missing user id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: failed to update profile
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update current user's profile
+      tags:
+      - profile
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

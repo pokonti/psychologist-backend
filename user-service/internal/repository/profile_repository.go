@@ -11,6 +11,7 @@ type ProfileRepository interface {
 	Create(ctx context.Context, p *models.UserProfile) error
 	GetByID(ctx context.Context, id string) (*models.UserProfile, error)
 	Update(ctx context.Context, p *models.UserProfile) error
+	GetAllPsychologists(ctx context.Context) ([]models.UserProfile, error)
 }
 type GormProfileRepository struct {
 	db *gorm.DB
@@ -34,4 +35,10 @@ func (r *GormProfileRepository) GetByID(ctx context.Context, id string) (*models
 
 func (r *GormProfileRepository) Update(ctx context.Context, p *models.UserProfile) error {
 	return r.db.WithContext(ctx).Save(p).Error
+}
+func (r *GormProfileRepository) GetAllPsychologists(ctx context.Context) ([]models.UserProfile, error) {
+	var users []models.UserProfile
+	// Fetch all users where Role is 'psychologist'
+	err := r.db.WithContext(ctx).Where("role = ?", "psychologist").Find(&users).Error
+	return users, err
 }

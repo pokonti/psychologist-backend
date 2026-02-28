@@ -13,8 +13,18 @@ import (
 	"github.com/pokonti/psychologist-backend/user-service/internal/repository"
 	"github.com/pokonti/psychologist-backend/user-service/routes"
 	"google.golang.org/grpc"
+
+	_ "github.com/pokonti/psychologist-backend/user-service/docs"
 )
 
+// @title           User Service API
+// @version         1.0
+// @description     User profiles and psychologist directory for KBTU counseling system.
+// @host            localhost:8081
+// @BasePath        /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	config.ConnectDB()
 	db := config.DB

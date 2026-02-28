@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type UserProfile struct {
@@ -22,6 +24,7 @@ type UserProfile struct {
 	Rating              float32   `json:"rating"`
 	NotificationChannel string    `json:"notification_channel"` // "email", "whatsapp", "none"
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft Delete
 }

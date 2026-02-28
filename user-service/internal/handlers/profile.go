@@ -18,7 +18,17 @@ func NewProfileHandler(repo repository.ProfileRepository) *ProfileHandler {
 	return &ProfileHandler{Repo: repo}
 }
 
-// GET /users/me
+// GetMyProfile godoc
+// @Summary      Get current user's profile
+// @Description  Returns the profile of the currently authenticated user. In production, the gateway injects X-User-ID based on the JWT. When calling the service directly (e.g. via Swagger), you must provide X-User-ID manually.
+// @Tags         profile
+// @Produce      json
+// @Param        X-User-ID  header    string  true  "User ID (UUID from JWT sub)"
+// @Success      200  {object}  models.UserProfile
+// @Failure      401  {object}  map[string]string  "missing user id"
+// @Failure      404  {object}  map[string]string  "profile not found"
+// @Failure      500  {object}  map[string]string  "internal error"
+// @Router       /users/me [get]
 func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
@@ -49,7 +59,19 @@ type UpdateProfileRequest struct {
 	NotificationChannel *string `json:"notification_channel" binding:"omitempty"`
 }
 
-// PUT /users/me
+// UpdateMyProfile godoc
+// @Summary      Update current user's profile
+// @Description  Partially update the profile of the current user. In production, the gateway injects X-User-ID from JWT. When calling user-service directly (Swagger), provide X-User-ID manually.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Param        X-User-ID  header    string               true  "User ID (UUID from JWT sub)"
+// @Param        request    body      UpdateProfileRequest true  "Fields to update"
+// @Success      200        {object}  models.UserProfile
+// @Failure      400        {object}  map[string]string  "invalid request body"
+// @Failure      401        {object}  map[string]string  "missing user id"
+// @Failure      500        {object}  map[string]string  "failed to update profile"
+// @Router       /users/me [put]
 func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	userID := c.GetHeader("X-User-ID")
 	if userID == "" {
@@ -102,4 +124,22 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profile)
+}
+
+// GetAllPsychologists godoc
+// @Summary      List all psychologists
+// @Description  Returns a list of all users whose role is 'psychologist'.
+// @Tags         psychologists
+// @Produce      json
+// @Success      200  {array}   models.UserProfile
+// @Failure      500  {object}  map[string]string  "database error"
+// @Security     BearerAuth
+// @Router       /psychologists [get]
+func (h *ProfileHandler) GetAllPsychologists(c *gin.Context) {
+	profiles, err := h.Repo.GetAllPsychologists(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+	c.JSON(http.StatusOK, profiles)
 }
