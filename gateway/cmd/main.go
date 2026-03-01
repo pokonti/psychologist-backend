@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pokonti/psychologist-backend/gateway/internal/middleware"
 	"github.com/pokonti/psychologist-backend/gateway/internal/routes"
 )
 
@@ -13,6 +14,9 @@ func main() {
 
 	// Setup all routes
 	routes.SetupRoutes(r)
+
+	// CORS
+	r.Use(middleware.CorsMiddleware())
 
 	port := os.Getenv("GATEWAY_PORT")
 	if port == "" {
