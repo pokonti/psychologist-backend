@@ -277,3 +277,103 @@ func (h *BookingHandler) DeleteSlot(c *gin.Context) {
 		Message: "Slot successfully deleted",
 	})
 }
+
+// AddSessionNote godoc
+// @Summary      Add private notes to a session
+// @Description  Psychologist writes private notes after a session. Hidden from the student.
+// @Tags         psychologist-slots
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path   string        true  "Slot ID"
+// @Param        request body   models.AddNoteInput  true  "The private notes"
+// @Success      200 {object} models.MessageResponse
+// @Router       /psychologist/slots/{id}/notes [put]
+func (h *BookingHandler) AddSessionNote(c *gin.Context) {
+	slotID := c.Param("id")
+	psychID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can add notes"})
+		return
+	}
+
+	var input models.AddNoteInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	var slot models.Slot
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "Slot not found"})
+		return
+	}
+
+	// Security: Ensure the psych owns this slot and it's actually booked
+	if slot.PsychologistID != psychID {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only add notes to your own sessions"})
+		return
+	}
+	if !slot.IsBooked {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Cannot add notes to an unbooked slot"})
+		return
+	}
+
+	slot.PsychologistNotes = input.Notes
+	if err := config.DB.Save(&slot).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to save notes"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Notes saved successfully"})
+}
+
+// GetStudentHistory godoc
+// @Summary      Get a student's session history
+// @Description  Psychologist views all past sessions and private notes for a specific student.
+// @Tags         psychologist-slots
+// @Produce      json
+// @Security     BearerAuth
+// @Param        student_id path string true "Student ID"
+// @Success      200 {array} models.StudentHistoryResponse
+// @Router       /psychologist/students/{student_id}/history [get]
+func (h *BookingHandler) GetStudentHistory(c *gin.Context) {
+	studentID := c.Param("student_id")
+	psychID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Access denied"})
+		return
+	}
+
+	// Fetch all past bookings between THIS psychologist and THIS student
+	var slots []models.Slot
+	if err := config.DB.
+		Where("psychologist_id = ? AND student_id = ? AND is_booked = ?", psychID, studentID, true).
+		Order("start_time desc").
+		Find(&slots).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
+		return
+	}
+
+	var history []models.StudentHistoryResponse
+	for _, s := range slots {
+		history = append(history, models.StudentHistoryResponse{
+			SlotID:               s.ID,
+			StartTime:            s.StartTime,
+			BookingType:          s.BookingType,
+			QuestionnaireAnswers: s.QuestionnaireAnswers,
+			PsychologistNotes:    s.PsychologistNotes,
+		})
+	}
+
+	if len(history) == 0 {
+		c.JSON(http.StatusOK, []models.StudentHistoryResponse{})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}

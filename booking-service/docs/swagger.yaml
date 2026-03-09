@@ -1,5 +1,12 @@
 basePath: /api/v1
 definitions:
+  models.AddNoteInput:
+    properties:
+      notes:
+        type: string
+    required:
+    - notes
+    type: object
   models.BookSlotInput:
     properties:
       answers:
@@ -142,6 +149,19 @@ definitions:
       start_time:
         type: string
     type: object
+  models.StudentHistoryResponse:
+    properties:
+      booking_type:
+        type: string
+      psychologist_notes:
+        type: string
+      questionnaire_answers:
+        type: string
+      slot_id:
+        type: string
+      start_time:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -248,6 +268,60 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an unbooked slot
+      tags:
+      - psychologist-slots
+  /psychologist/slots/{id}/notes:
+    put:
+      consumes:
+      - application/json
+      description: Psychologist writes private notes after a session. Hidden from
+        the student.
+      parameters:
+      - description: Slot ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: The private notes
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddNoteInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Add private notes to a session
+      tags:
+      - psychologist-slots
+  /psychologist/students/{student_id}/history:
+    get:
+      description: Psychologist views all past sessions and private notes for a specific
+        student.
+      parameters:
+      - description: Student ID
+        in: path
+        name: student_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.StudentHistoryResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get a student's session history
       tags:
       - psychologist-slots
   /slots:

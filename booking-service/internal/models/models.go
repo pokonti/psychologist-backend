@@ -18,6 +18,8 @@ type Slot struct {
 
 	QuestionnaireAnswers string `gorm:"type:text" json:"questionnaire_answers"`
 
+	PsychologistNotes string `gorm:"type:text" json:"psychologist_notes,omitempty"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Version   int       `gorm:"default:1" json:"-"`
@@ -94,4 +96,16 @@ type StudentAppointmentResponse struct {
 
 type RescheduleInput struct {
 	NewSlotID string `json:"new_slot_id" binding:"required"`
+}
+
+type AddNoteInput struct {
+	Notes string `json:"notes" binding:"required"`
+}
+
+type StudentHistoryResponse struct {
+	SlotID               string    `json:"slot_id"`
+	StartTime            time.Time `json:"start_time"`
+	BookingType          string    `json:"booking_type"`
+	QuestionnaireAnswers string    `json:"questionnaire_answers"`
+	PsychologistNotes    string    `json:"psychologist_notes"`
 }

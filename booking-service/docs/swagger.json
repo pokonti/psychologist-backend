@@ -167,6 +167,89 @@
                 }
             }
         },
+        "/psychologist/slots/{id}/notes": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist writes private notes after a session. Hidden from the student.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Add private notes to a session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "The private notes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AddNoteInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/students/{student_id}/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist views all past sessions and private notes for a specific student.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Get a student's session history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Student ID",
+                        "name": "student_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.StudentHistoryResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/slots": {
             "get": {
                 "security": [
@@ -529,6 +612,17 @@
         }
     },
     "definitions": {
+        "models.AddNoteInput": {
+            "type": "object",
+            "required": [
+                "notes"
+            ],
+            "properties": {
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
         "models.BookSlotInput": {
             "type": "object",
             "required": [
@@ -733,6 +827,26 @@
                     "type": "string"
                 },
                 "questionnaire_answers": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.StudentHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "booking_type": {
+                    "type": "string"
+                },
+                "psychologist_notes": {
+                    "type": "string"
+                },
+                "questionnaire_answers": {
+                    "type": "string"
+                },
+                "slot_id": {
                     "type": "string"
                 },
                 "start_time": {
