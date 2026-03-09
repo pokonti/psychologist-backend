@@ -1,6 +1,14 @@
 package handlers
 
-import "time"
+import (
+	"time"
+
+	"github.com/pokonti/psychologist-backend/proto/userprofile"
+)
+
+type BookingHandler struct {
+	UserClient userprofile.UserProfileServiceClient
+}
 
 // Helper to parse "2026-01-01"
 func parseDate(dateStr string) (time.Time, error) {

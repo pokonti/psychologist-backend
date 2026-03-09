@@ -15,7 +15,7 @@ import (
 // @title           Auth Service API
 // @version         1.0
 // @description     This is the authentication service for the Psychologist Backend.
-// @host            localhost:8083
+// @host            localhost:8080
 // @BasePath        /api/v1/auth
 func main() {
 	gin.SetMode(gin.ReleaseMode)
@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not connect to user service: %v", err)
 	}
-	defer conn.Close() // Setup graceful shutdown
+	defer conn.Close()
 
 	// Init Controller
 	authController := &handlers.AuthController{

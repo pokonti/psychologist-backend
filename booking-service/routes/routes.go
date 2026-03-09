@@ -19,12 +19,17 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 		psych := api.Group("/psychologist")
 		{
 			psych.POST("/slots", handlers.CreateSlot)
+			psych.GET("/slots", h.GetMySchedule)
+			psych.DELETE("/slots/:id", h.DeleteSlot)
 		}
 
 		// Student routes
 		student := api.Group("/student")
 		{
 			student.POST("/slots/:id/book", handlers.BookSlot)
+			student.GET("/appointments", h.GetMyAppointments)
+			student.POST("/slots/:id/cancel", h.CancelAppointment)
+			student.POST("/slots/:id/reschedule", h.RescheduleAppointment)
 		}
 	}
 

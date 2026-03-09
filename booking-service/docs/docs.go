@@ -16,6 +16,40 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/psychologist/slots": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all slots for the logged-in psychologist, including student details for booked slots.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Get psychologist's own schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PsychologistScheduleResponse"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -65,6 +99,70 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/slots/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a psychologist to remove an available slot from their schedule. Fails if the slot is already booked.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Delete an unbooked slot",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized or not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Cannot delete a booked slot",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -182,6 +280,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/student/appointments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of all upcoming and past appointments booked by the logged-in student.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Get student's booked appointments",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.StudentAppointmentResponse"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/student/slots/{id}/book": {
             "post": {
                 "security": [
@@ -209,7 +347,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Booking type (online/offline)",
+                        "description": "Booking details: type and answers",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -251,6 +389,146 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/student/slots/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student cancels their own booking. This frees up the slot for other students to book.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Cancel a booked appointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized or not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot is not booked",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/student/slots/{id}/reschedule": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student moves their booking from one slot to another available slot. This is done atomically so they don't lose their original slot if the new one is taken.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Reschedule an appointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Old Slot ID (The one currently booked)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "The new Slot ID to move to",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RescheduleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized or not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "New slot already booked or race condition",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -260,6 +538,9 @@ const docTemplate = `{
                 "booking_type"
             ],
             "properties": {
+                "answers": {
+                    "type": "string"
+                },
                 "booking_type": {
                     "type": "string",
                     "enum": [
@@ -351,6 +632,52 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PsychologistScheduleResponse": {
+            "type": "object",
+            "properties": {
+                "booking_type": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_booked": {
+                    "type": "boolean"
+                },
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
+                    "type": "string"
+                },
+                "questionnaire_answers": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "student_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RescheduleInput": {
+            "type": "object",
+            "required": [
+                "new_slot_id"
+            ],
+            "properties": {
+                "new_slot_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ScheduleCreatedResponse": {
             "type": "object",
             "properties": {
@@ -383,7 +710,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "psychologist_name": {
-                    "description": "Enriched via gRPC",
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.StudentAppointmentResponse": {
+            "type": "object",
+            "properties": {
+                "booking_type": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
+                    "type": "string"
+                },
+                "questionnaire_answers": {
                     "type": "string"
                 },
                 "start_time": {

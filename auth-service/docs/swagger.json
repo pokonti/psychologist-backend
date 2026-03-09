@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8083",
+    "host": "localhost:8080",
     "basePath": "/api/v1/auth",
     "paths": {
         "/login": {

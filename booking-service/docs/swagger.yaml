@@ -2,6 +2,8 @@ basePath: /api/v1
 definitions:
   models.BookSlotInput:
     properties:
+      answers:
+        type: string
       booking_type:
         enum:
         - online
@@ -67,6 +69,36 @@ definitions:
         example: Booking successful
         type: string
     type: object
+  models.PsychologistScheduleResponse:
+    properties:
+      booking_type:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: string
+      is_booked:
+        type: boolean
+      psychologist_id:
+        type: string
+      psychologist_name:
+        type: string
+      questionnaire_answers:
+        type: string
+      start_time:
+        type: string
+      student_id:
+        type: string
+      student_name:
+        type: string
+    type: object
+  models.RescheduleInput:
+    properties:
+      new_slot_id:
+        type: string
+    required:
+    - new_slot_id
+    type: object
   models.ScheduleCreatedResponse:
     properties:
       count:
@@ -89,7 +121,23 @@ definitions:
       psychologist_id:
         type: string
       psychologist_name:
-        description: Enriched via gRPC
+        type: string
+      start_time:
+        type: string
+    type: object
+  models.StudentAppointmentResponse:
+    properties:
+      booking_type:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: string
+      psychologist_id:
+        type: string
+      psychologist_name:
+        type: string
+      questionnaire_answers:
         type: string
       start_time:
         type: string
@@ -102,6 +150,28 @@ info:
   version: "1.0"
 paths:
   /psychologist/slots:
+    get:
+      description: Returns all slots for the logged-in psychologist, including student
+        details for booked slots.
+      parameters:
+      - description: Filter by date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.PsychologistScheduleResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get psychologist's own schedule
+      tags:
+      - psychologist-slots
     post:
       consumes:
       - application/json
@@ -136,6 +206,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Create schedule slots for a psychologist
+      tags:
+      - psychologist-slots
+  /psychologist/slots/{id}:
+    delete:
+      description: Allows a psychologist to remove an available slot from their schedule.
+        Fails if the slot is already booked.
+      parameters:
+      - description: Slot ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or not the owner
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Cannot delete a booked slot
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an unbooked slot
       tags:
       - psychologist-slots
   /slots:
@@ -211,6 +323,32 @@ paths:
       summary: Get calendar days with available slots
       tags:
       - slots
+  /student/appointments:
+    get:
+      description: Returns a list of all upcoming and past appointments booked by
+        the logged-in student.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.StudentAppointmentResponse'
+            type: array
+        "403":
+          description: Not authorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get student's booked appointments
+      tags:
+      - student-booking
   /student/slots/{id}/book:
     post:
       consumes:
@@ -223,7 +361,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: Booking type (online/offline)
+      - description: 'Booking details: type and answers'
         in: body
         name: request
         required: true
@@ -255,6 +393,99 @@ paths:
       security:
       - BearerAuth: []
       summary: Book a slot as a student
+      tags:
+      - student-booking
+  /student/slots/{id}/cancel:
+    post:
+      description: Student cancels their own booking. This frees up the slot for other
+        students to book.
+      parameters:
+      - description: Slot ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or not the owner
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Slot is not booked
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a booked appointment
+      tags:
+      - student-booking
+  /student/slots/{id}/reschedule:
+    post:
+      consumes:
+      - application/json
+      description: Student moves their booking from one slot to another available
+        slot. This is done atomically so they don't lose their original slot if the
+        new one is taken.
+      parameters:
+      - description: Old Slot ID (The one currently booked)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: The new Slot ID to move to
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RescheduleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or not the owner
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: New slot already booked or race condition
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reschedule an appointment
       tags:
       - student-booking
 schemes:

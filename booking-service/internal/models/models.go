@@ -6,8 +6,8 @@ import (
 
 type Slot struct {
 	ID             string    `gorm:"type:uuid;primary_key" json:"id"`
-	PsychologistID string    `gorm:"type:uuid;not null;index" json:"psychologist_id"`
-	StartTime      time.Time `gorm:"not null;index" json:"start_time"`
+	PsychologistID string    `gorm:"type:uuid;not null;uniqueIndex:idx_psych_time" json:"psychologist_id"`
+	StartTime      time.Time `gorm:"not null;uniqueIndex:idx_psych_time" json:"start_time"`
 	Duration       int       `gorm:"default:50" json:"duration"` // in minutes
 
 	// Booking Info
@@ -15,6 +15,8 @@ type Slot struct {
 	StudentID *string `gorm:"type:uuid;default:null" json:"student_id"` // Nullable
 
 	BookingType string `gorm:"default:null" json:"booking_type"` // "online" or "offline"
+
+	QuestionnaireAnswers string `gorm:"type:text" json:"questionnaire_answers"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -40,7 +42,7 @@ type SlotResponse struct {
 	IsBooked         bool      `json:"is_booked"`
 	BookingType      string    `json:"booking_type"`
 	PsychologistID   string    `json:"psychologist_id"`
-	PsychologistName string    `json:"psychologist_name"` // Enriched via gRPC
+	PsychologistName string    `json:"psychologist_name"`
 }
 
 // ErrorResponse represents a standard API error format.
@@ -64,4 +66,32 @@ type CalendarAvailabilityResponse struct {
 
 type BookSlotInput struct {
 	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
+	Answers     string `json:"answers"`
+}
+
+type PsychologistScheduleResponse struct {
+	ID                   string    `json:"id"`
+	StartTime            time.Time `json:"start_time"`
+	Duration             int       `json:"duration"`
+	IsBooked             bool      `json:"is_booked"`
+	BookingType          string    `json:"booking_type"`
+	PsychologistID       string    `json:"psychologist_id"`
+	PsychologistName     string    `json:"psychologist_name"`
+	StudentID            *string   `json:"student_id,omitempty"`
+	StudentName          string    `json:"student_name,omitempty"`
+	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
+}
+
+type StudentAppointmentResponse struct {
+	ID                   string    `json:"id"`
+	StartTime            time.Time `json:"start_time"`
+	Duration             int       `json:"duration"`
+	BookingType          string    `json:"booking_type"`
+	PsychologistID       string    `json:"psychologist_id"`
+	PsychologistName     string    `json:"psychologist_name"`
+	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
+}
+
+type RescheduleInput struct {
+	NewSlotID string `json:"new_slot_id" binding:"required"`
 }
