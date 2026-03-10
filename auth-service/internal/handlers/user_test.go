@@ -28,7 +28,6 @@ type MockUserClient struct {
 
 func (m *MockUserClient) CreateUserProfile(ctx context.Context, in *userprofile.CreateUserProfileRequest, opts ...grpc.CallOption) (*userprofile.CreateUserProfileResponse, error) {
 	args := m.Called(ctx, in)
-	// Return nil if args.Get(0) is nil, otherwise cast it
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -37,6 +36,14 @@ func (m *MockUserClient) CreateUserProfile(ctx context.Context, in *userprofile.
 
 func (m *MockUserClient) GetUserProfileByID(ctx context.Context, in *userprofile.GetUserProfileByIDRequest, opts ...grpc.CallOption) (*userprofile.GetUserProfileByIDResponse, error) {
 	return nil, nil
+}
+
+func (m *MockUserClient) GetBatchUserProfiles(ctx context.Context, in *userprofile.GetBatchUserProfilesRequest, opts ...grpc.CallOption) (*userprofile.GetBatchUserProfilesResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*userprofile.GetBatchUserProfilesResponse), args.Error(1)
 }
 
 func setupTestDB() {
@@ -75,7 +82,7 @@ func TestRegisterSuccess(t *testing.T) {
 	}
 	r := setupRouter(ac)
 
-	input := RegisterInput{
+	input := models.RegisterInput{
 		Email:    "newuser@test.com",
 		Password: "password123",
 		Role:     "student",
@@ -112,7 +119,7 @@ func TestVerifySuccess(t *testing.T) {
 	ac := &AuthController{}
 	r := setupRouter(ac)
 
-	input := VerifyInput{
+	input := models.VerifyInput{
 		Email: "verify@test.com",
 		Code:  "111111",
 	}
@@ -146,7 +153,7 @@ func TestLoginFailNotVerified(t *testing.T) {
 	ac := &AuthController{}
 	r := setupRouter(ac)
 
-	input := LoginInput{
+	input := models.LoginInput{
 		Email:    "login@test.com",
 		Password: "password123",
 	}
@@ -175,7 +182,7 @@ func TestLoginSuccess(t *testing.T) {
 	ac := &AuthController{}
 	r := setupRouter(ac)
 
-	input := LoginInput{
+	input := models.LoginInput{
 		Email:    "valid@test.com",
 		Password: "password123",
 	}
@@ -200,7 +207,7 @@ func TestRegisterFailDuplicate(t *testing.T) {
 	ac := &AuthController{} // No mocks needed, it fails before calling them
 	r := setupRouter(ac)
 
-	input := RegisterInput{
+	input := models.RegisterInput{
 		Email:    "duplicate@test.com",
 		Password: "password123",
 		Role:     "student",
@@ -227,7 +234,7 @@ func TestVerifyFailWrongCode(t *testing.T) {
 	ac := &AuthController{}
 	r := setupRouter(ac)
 
-	input := VerifyInput{
+	input := models.VerifyInput{
 		Email: "wrongcode@test.com",
 		Code:  "999999", // WRONG CODE
 	}
@@ -253,7 +260,7 @@ func TestVerifyFailExpired(t *testing.T) {
 	ac := &AuthController{}
 	r := setupRouter(ac)
 
-	input := VerifyInput{
+	input := models.VerifyInput{
 		Email: "expired@test.com",
 		Code:  "123456",
 	}

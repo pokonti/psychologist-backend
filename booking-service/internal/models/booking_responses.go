@@ -37,9 +37,8 @@ type PsychologistScheduleResponse struct {
 	IsBooked             bool      `json:"is_booked"`
 	BookingType          string    `json:"booking_type"`
 	PsychologistID       string    `json:"psychologist_id"`
-	PsychologistName     string    `json:"psychologist_name"`
 	StudentID            *string   `json:"student_id,omitempty"`
-	StudentName          string    `json:"student_name,omitempty"`
+	StudentName          string    `json:"student_name"`
 	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
 }
 

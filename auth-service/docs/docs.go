@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.LoginInput"
+                            "$ref": "#/definitions/models.LoginInput"
                         }
                     }
                 ],
@@ -43,19 +43,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResponse"
+                            "$ref": "#/definitions/models.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -81,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.RegisterInput"
+                            "$ref": "#/definitions/models.RegisterInput"
                         }
                     }
                 ],
@@ -89,25 +89,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.RegisterResponse"
+                            "$ref": "#/definitions/models.RegisterResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "User already exists",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -133,7 +133,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyInput"
+                            "$ref": "#/definitions/models.VerifyInput"
                         }
                     }
                 ],
@@ -141,19 +141,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResponse"
+                            "$ref": "#/definitions/models.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid Code",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ErrorResponse"
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -161,7 +161,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.ErrorResponse": {
+        "models.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -169,7 +169,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.LoginInput": {
+        "models.LoginInput": {
             "type": "object",
             "required": [
                 "email",
@@ -184,7 +184,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.RegisterInput": {
+        "models.RegisterInput": {
             "type": "object",
             "required": [
                 "email",
@@ -205,7 +205,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.RegisterResponse": {
+        "models.RegisterResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -213,7 +213,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.TokenResponse": {
+        "models.TokenResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -224,7 +224,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.VerifyInput": {
+        "models.VerifyInput": {
             "type": "object",
             "required": [
                 "code",

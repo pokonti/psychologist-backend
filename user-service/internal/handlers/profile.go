@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
@@ -55,16 +56,6 @@ func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
-type UpdateProfileRequest struct {
-	FullName            *string `json:"full_name" binding:"omitempty"`
-	Gender              *string `json:"gender" binding:"omitempty"`
-	Specialization      *string `json:"specialization" binding:"omitempty"`
-	Bio                 *string `json:"bio" binding:"omitempty"`
-	AvatarURL           *string `json:"avatar_url" binding:"omitempty"`
-	Phone               *string `json:"phone" binding:"omitempty"`
-	NotificationChannel *string `json:"notification_channel" binding:"omitempty"`
-}
-
 // UpdateMyProfile godoc
 // @Summary      Update current user's profile
 // @Description  Partially update the profile of the current user. In production, the gateway injects X-User-ID from JWT. When calling user-service directly (Swagger), provide X-User-ID manually.
@@ -72,7 +63,7 @@ type UpdateProfileRequest struct {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request    body      UpdateProfileRequest true  "Fields to update"
+// @Param        request    body      models.UpdateProfileRequest true  "Fields to update"
 // @Success      200        {object}  models.UserProfile
 // @Failure      400        {object}  models.ErrorResponse "invalid request body"
 // @Failure      401        {object}  models.ErrorResponse "missing user id"
@@ -87,7 +78,7 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	var req UpdateProfileRequest
+	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error: err.Error(),
@@ -97,7 +88,7 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 
 	profile, err := h.Repo.GetByID(c.Request.Context(), userID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			profile = &models.UserProfile{ID: userID}
 		} else {
 			c.JSON(http.StatusInternalServerError, models.ErrorResponse{

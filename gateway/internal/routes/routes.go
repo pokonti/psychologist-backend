@@ -22,10 +22,9 @@ func SetupRoutes(r *gin.Engine) {
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))
 	protected.GET("/slots/calendar", proxy.Forward("http://booking-service:8084"))
 
-	// Psychologist Only
+	// Psychologist
 	psychOnly := protected.Group("/psychologist", middleware.RequireRoles("psychologist", "admin"))
 	{
-		// This sends: /api/v1/psychologist/slots
 		psychOnly.POST("/slots", proxy.Forward("http://booking-service:8084"))
 		psychOnly.GET("/slots", proxy.Forward("http://booking-service:8084"))
 		psychOnly.DELETE("/slots/:id", proxy.Forward("http://booking-service:8084"))
@@ -33,10 +32,9 @@ func SetupRoutes(r *gin.Engine) {
 		psychOnly.GET("/students/:student_id/history", proxy.Forward("http://booking-service:8084"))
 	}
 
-	// 3. Student Only
+	// Student
 	studentOnly := protected.Group("/student", middleware.RequireRoles("student", "admin"))
 	{
-		// Book an appointment
 		studentOnly.POST("/slots/:id/book", proxy.Forward("http://booking-service:8084"))
 		studentOnly.GET("/appointments", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))

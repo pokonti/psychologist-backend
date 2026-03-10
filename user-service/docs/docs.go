@@ -81,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateProfileRequest"
+                            "$ref": "#/definitions/models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -149,7 +149,16 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.UpdateProfileRequest": {
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid start_date"
+                }
+            }
+        },
+        "models.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -172,15 +181,6 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "type": "string"
-                }
-            }
-        },
-        "models.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "Invalid start_date"
                 }
             }
         },

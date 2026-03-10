@@ -1,11 +1,11 @@
 basePath: /api/v1/auth
 definitions:
-  handlers.ErrorResponse:
+  models.ErrorResponse:
     properties:
       error:
         type: string
     type: object
-  handlers.LoginInput:
+  models.LoginInput:
     properties:
       email:
         type: string
@@ -15,7 +15,7 @@ definitions:
     - email
     - password
     type: object
-  handlers.RegisterInput:
+  models.RegisterInput:
     properties:
       email:
         type: string
@@ -30,19 +30,19 @@ definitions:
     - password
     - role
     type: object
-  handlers.RegisterResponse:
+  models.RegisterResponse:
     properties:
       message:
         type: string
     type: object
-  handlers.TokenResponse:
+  models.TokenResponse:
     properties:
       message:
         type: string
       token:
         type: string
     type: object
-  handlers.VerifyInput:
+  models.VerifyInput:
     properties:
       code:
         type: string
@@ -70,22 +70,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.LoginInput'
+          $ref: '#/definitions/models.LoginInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.TokenResponse'
+            $ref: '#/definitions/models.TokenResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Login User
       tags:
       - auth
@@ -101,26 +101,26 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.RegisterInput'
+          $ref: '#/definitions/models.RegisterInput'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/handlers.RegisterResponse'
+            $ref: '#/definitions/models.RegisterResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
         "409":
           description: User already exists
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Register a new user
       tags:
       - auth
@@ -135,22 +135,22 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.VerifyInput'
+          $ref: '#/definitions/models.VerifyInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.TokenResponse'
+            $ref: '#/definitions/models.TokenResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
         "401":
           description: Invalid Code
           schema:
-            $ref: '#/definitions/handlers.ErrorResponse'
+            $ref: '#/definitions/models.ErrorResponse'
       summary: Verify Email
       tags:
       - auth

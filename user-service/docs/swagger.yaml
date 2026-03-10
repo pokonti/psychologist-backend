@@ -1,6 +1,12 @@
 basePath: /api/v1
 definitions:
-  handlers.UpdateProfileRequest:
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Invalid start_date
+        type: string
+    type: object
+  models.UpdateProfileRequest:
     properties:
       avatar_url:
         type: string
@@ -15,12 +21,6 @@ definitions:
       phone:
         type: string
       specialization:
-        type: string
-    type: object
-  models.ErrorResponse:
-    properties:
-      error:
-        example: Invalid start_date
         type: string
     type: object
   models.UserProfile:
@@ -114,7 +114,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdateProfileRequest'
+          $ref: '#/definitions/models.UpdateProfileRequest'
       produces:
       - application/json
       responses:

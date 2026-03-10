@@ -29,7 +29,10 @@ func ConnectDB() {
 	}
 
 	log.Println("Booking DB Connected. Running Migrations")
-	DB.AutoMigrate(&models.Slot{}, &models.WaitlistEntry{})
+	err = DB.AutoMigrate(&models.Slot{}, &models.WaitlistEntry{})
+	if err != nil {
+		log.Fatal("Failed to migrate database: ", err)
+	}
 }
 
 func getEnv(key, fallback string) string {
