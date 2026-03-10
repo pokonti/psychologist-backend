@@ -3,11 +3,11 @@ services:
     image: postgres:16
     container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: usersdb
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,13 +24,13 @@ services:
       dockerfile: user-service/Dockerfile
     container_name: user-service
     ports:
-      - "8081:8081"
+      - "${USER_PORT}:${USER_PORT}"
     environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: usersdb
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
       dockerfile: gateway/Dockerfile
     container_name: gateway
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     env_file:
       - .env
     depends_on:
@@ -59,13 +59,13 @@ services:
       dockerfile: auth-service/Dockerfile
     container_name: auth-service
     ports:
-      - "8083:8083"
+      - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: usersdb
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_EMAIL: ${SMTP_EMAIL}
@@ -82,19 +82,33 @@ services:
       dockerfile: booking-service/Dockerfile
     container_name: booking-service
     ports:
-      - "8084:8084"
+      - "${BOOKING_PORT}:${BOOKING_PORT}"
     environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: password
-      DB_NAME: usersdb
-      DB_PORT: 5432
-      USER_SERVICE_GRPC_ADDR: "user-service:9091"
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+      USER_SERVICE_GRPC_ADDR: "user-service:${USER_GRPC}"
     depends_on:
       postgres:
         condition: service_healthy
-#      user-service:
-#        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    networks:
+      - backend
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol port
+      - "15672:15672" # Web Management UI
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - backend
 
