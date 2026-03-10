@@ -8,8 +8,6 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, authController *handlers.AuthController) {
-	// Swagger Route
-	// Access at: http://localhost:8083/swagger/index.html
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := r.Group("/api/v1/auth")

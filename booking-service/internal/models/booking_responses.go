@@ -1,41 +1,6 @@
 package models
 
-import (
-	"time"
-)
-
-type Slot struct {
-	ID             string    `gorm:"type:uuid;primary_key" json:"id"`
-	PsychologistID string    `gorm:"type:uuid;not null;uniqueIndex:idx_psych_time" json:"psychologist_id"`
-	StartTime      time.Time `gorm:"not null;uniqueIndex:idx_psych_time" json:"start_time"`
-	Duration       int       `gorm:"default:50" json:"duration"` // in minutes
-
-	// Booking Info
-	IsBooked  bool    `gorm:"default:false" json:"is_booked"`
-	StudentID *string `gorm:"type:uuid;default:null" json:"student_id"` // Nullable
-
-	BookingType string `gorm:"default:null" json:"booking_type"` // "online" or "offline"
-
-	QuestionnaireAnswers string `gorm:"type:text" json:"questionnaire_answers"`
-
-	PsychologistNotes string `gorm:"type:text" json:"psychologist_notes,omitempty"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Version   int       `gorm:"default:1" json:"-"`
-}
-
-type DaySchedule struct {
-	DayOfWeek  int      `json:"day_of_week" binding:"required"` // 1=Mon, 2=Tue...
-	StartTimes []string `json:"start_times" binding:"required"` // ["09:00", "10:00", "14:00"]
-}
-
-type CreateScheduleInput struct {
-	StartDate string        `json:"start_date" binding:"required"` // "2026-02-20"
-	EndDate   string        `json:"end_date" binding:"required"`   // "2026-03-20"
-	Duration  int           `json:"duration"`                      // 50 (default)
-	Schedule  []DaySchedule `json:"schedule" binding:"required"`   // The template
-}
+import "time"
 
 type SlotResponse struct {
 	ID               string    `json:"id"`
@@ -47,7 +12,6 @@ type SlotResponse struct {
 	PsychologistName string    `json:"psychologist_name"`
 }
 
-// ErrorResponse represents a standard API error format.
 type ErrorResponse struct {
 	Error string `json:"error" example:"Invalid start_date"`
 }
@@ -64,11 +28,6 @@ type ScheduleCreatedResponse struct {
 // CalendarAvailabilityResponse represents available days in a month.
 type CalendarAvailabilityResponse struct {
 	AvailableDates []string `json:"available_dates" example:"2026-02-10,2026-02-14"`
-}
-
-type BookSlotInput struct {
-	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
-	Answers     string `json:"answers"`
 }
 
 type PsychologistScheduleResponse struct {
@@ -94,18 +53,17 @@ type StudentAppointmentResponse struct {
 	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
 }
 
-type RescheduleInput struct {
-	NewSlotID string `json:"new_slot_id" binding:"required"`
-}
-
-type AddNoteInput struct {
-	Notes string `json:"notes" binding:"required"`
-}
-
 type StudentHistoryResponse struct {
 	SlotID               string    `json:"slot_id"`
 	StartTime            time.Time `json:"start_time"`
 	BookingType          string    `json:"booking_type"`
 	QuestionnaireAnswers string    `json:"questionnaire_answers"`
 	PsychologistNotes    string    `json:"psychologist_notes"`
+}
+type WaitlistResponse struct {
+	ID               string    `json:"id"`
+	PsychologistID   string    `json:"psychologist_id"`
+	PsychologistName string    `json:"psychologist_name"`
+	Date             string    `json:"date"`
+	CreatedAt        time.Time `json:"created_at"`
 }

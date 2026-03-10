@@ -28,8 +28,8 @@ func ConnectDB() {
 		log.Fatal("Failed to connect to database: ", err)
 	}
 
-	log.Println("Booking DB Connected. Running Migrations...")
-	DB.AutoMigrate(&models.Slot{})
+	log.Println("Booking DB Connected. Running Migrations")
+	DB.AutoMigrate(&models.Slot{}, &models.WaitlistEntry{})
 }
 
 func getEnv(key, fallback string) string {

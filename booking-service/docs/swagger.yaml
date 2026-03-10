@@ -70,6 +70,16 @@ definitions:
         example: Invalid start_date
         type: string
     type: object
+  models.JoinWaitlistInput:
+    properties:
+      date:
+        type: string
+      psychologist_id:
+        type: string
+    required:
+    - date
+    - psychologist_id
+    type: object
   models.MessageResponse:
     properties:
       message:
@@ -160,6 +170,19 @@ definitions:
       slot_id:
         type: string
       start_time:
+        type: string
+    type: object
+  models.WaitlistResponse:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      psychologist_id:
+        type: string
+      psychologist_name:
         type: string
     type: object
 host: localhost:8080
@@ -562,6 +585,76 @@ paths:
       summary: Reschedule an appointment
       tags:
       - student-booking
+  /student/waitlist:
+    get:
+      description: Student sees all the dates and psychologists they are waiting for.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.WaitlistResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: View my waitlists
+      tags:
+      - student-waitlist
+    post:
+      consumes:
+      - application/json
+      description: Student joins a waitlist for a specific psychologist on a specific
+        date.
+      parameters:
+      - description: Waitlist details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.JoinWaitlistInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Already on waitlist
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Join a waitlist
+      tags:
+      - student-waitlist
+  /student/waitlist/{id}:
+    delete:
+      description: Student removes themselves from a specific waitlist entry.
+      parameters:
+      - description: Waitlist Entry ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Leave a waitlist
+      tags:
+      - student-waitlist
 schemes:
 - http
 securityDefinitions:

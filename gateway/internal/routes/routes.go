@@ -41,6 +41,9 @@ func SetupRoutes(r *gin.Engine) {
 		studentOnly.GET("/appointments", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/reschedule", proxy.Forward("http://booking-service:8084"))
+		studentOnly.POST("/waitlist", proxy.Forward("http://booking-service:8084"))
+		studentOnly.GET("/waitlist", proxy.Forward("http://booking-service:8084"))
+		studentOnly.DELETE("/waitlist/:id", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Proxy Swagger UIs

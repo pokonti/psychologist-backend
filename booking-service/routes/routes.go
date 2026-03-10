@@ -32,6 +32,10 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			student.GET("/appointments", h.GetMyAppointments)
 			student.POST("/slots/:id/cancel", h.CancelAppointment)
 			student.POST("/slots/:id/reschedule", h.RescheduleAppointment)
+
+			student.POST("/waitlist", h.JoinWaitlist)
+			student.GET("/waitlist", h.GetMyWaitlist)
+			student.DELETE("/waitlist/:id", h.LeaveWaitlist)
 		}
 	}
 

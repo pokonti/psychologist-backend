@@ -612,6 +612,117 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/student/waitlist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student sees all the dates and psychologists they are waiting for.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-waitlist"
+                ],
+                "summary": "View my waitlists",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.WaitlistResponse"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student joins a waitlist for a specific psychologist on a specific date.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-waitlist"
+                ],
+                "summary": "Join a waitlist",
+                "parameters": [
+                    {
+                        "description": "Waitlist details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.JoinWaitlistInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Already on waitlist",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/student/waitlist/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student removes themselves from a specific waitlist entry.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-waitlist"
+                ],
+                "summary": "Leave a waitlist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Waitlist Entry ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -714,6 +825,21 @@ const docTemplate = `{
                 "error": {
                     "type": "string",
                     "example": "Invalid start_date"
+                }
+            }
+        },
+        "models.JoinWaitlistInput": {
+            "type": "object",
+            "required": [
+                "date",
+                "psychologist_id"
+            ],
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "psychologist_id": {
+                    "type": "string"
                 }
             }
         },
@@ -853,6 +979,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.WaitlistResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
                     "type": "string"
                 }
             }
