@@ -23,12 +23,13 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			psych.DELETE("/slots/:id", h.DeleteSlot)
 			psych.PUT("/slots/:id/notes", h.AddSessionNote)
 			psych.GET("/students/:student_id/history", h.GetStudentHistory)
+			psych.POST("/slots/:id/cancel", h.CancelBookingByPsychologist)
 		}
 
 		// Student routes
 		student := api.Group("/student")
 		{
-			student.POST("/slots/:id/book", handlers.BookSlot)
+			student.POST("/slots/:id/book", h.BookSlot)
 			student.GET("/appointments", h.GetMyAppointments)
 			student.POST("/slots/:id/cancel", h.CancelAppointment)
 			student.POST("/slots/:id/reschedule", h.RescheduleAppointment)
@@ -37,6 +38,13 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			student.GET("/waitlist", h.GetMyWaitlist)
 			student.DELETE("/waitlist/:id", h.LeaveWaitlist)
 		}
+	}
+
+	admin := api.Group("/admin")
+	{
+		admin.GET("/bookings", h.GetAllBookings)
+		admin.POST("/bookings/:id/cancel", h.ForceCancelBooking)
+		admin.GET("/admin/dashboard", h.GetDashboard)
 	}
 
 	// Swagger endpoint

@@ -23,7 +23,7 @@ const (
 
 type CreateUserProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // user id from auth-service
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 	FullName      string                 `protobuf:"bytes,4,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
@@ -314,11 +314,11 @@ func (x *GetBatchUserProfilesRequest) GetIds() []string {
 	return nil
 }
 
-// A lighter user object for lists
 type BasicUserProfile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FullName      string                 `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"` // Add photo_url here later if you have it
+	FullName      string                 `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"` // Add photo_url here later if you have it
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -363,6 +363,13 @@ func (x *BasicUserProfile) GetId() string {
 func (x *BasicUserProfile) GetFullName() string {
 	if x != nil {
 		return x.FullName
+	}
+	return ""
+}
+
+func (x *BasicUserProfile) GetEmail() string {
+	if x != nil {
+		return x.Email
 	}
 	return ""
 }
@@ -434,10 +441,11 @@ const file_proto_userprofile_user_profile_proto_rawDesc = "" +
 	"\x05email\x18\x06 \x01(\tR\x05email\x12\x14\n" +
 	"\x05phone\x18\a \x01(\tR\x05phone\"/\n" +
 	"\x1bGetBatchUserProfilesRequest\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\tR\x03ids\"?\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"U\n" +
 	"\x10BasicUserProfile\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\tfull_name\x18\x02 \x01(\tR\bfullName\"Y\n" +
+	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\"Y\n" +
 	"\x1cGetBatchUserProfilesResponse\x129\n" +
 	"\bprofiles\x18\x01 \x03(\v2\x1d.userprofile.BasicUserProfileR\bprofiles2\xcc\x02\n" +
 	"\x12UserProfileService\x12b\n" +

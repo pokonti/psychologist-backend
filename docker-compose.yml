@@ -66,10 +66,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_PORT: ${DB_PORT}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_EMAIL: ${SMTP_EMAIL}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      RABBITMQ_URL: ${RABBITMQ_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,10 +87,9 @@ services:
       DB_NAME: ${DB_NAME}
       DB_PORT: ${DB_PORT}
       USER_SERVICE_GRPC_ADDR: "user-service:${USER_GRPC}"
+      RABBITMQ_URL: ${RABBITMQ_URL}
     depends_on:
       postgres:
-        condition: service_healthy
-      user-service:
         condition: service_healthy
     networks:
       - backend
@@ -109,6 +105,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    environment:
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_EMAIL: ${SMTP_EMAIL}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - backend
 

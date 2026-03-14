@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/pokonti/psychologist-backend/booking-service/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
@@ -31,29 +33,24 @@ func CreateSlot(c *gin.Context) {
 	role := c.GetHeader("X-User-Role")
 
 	if role != "psychologist" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only psychologists can create slots"})
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can create slots"})
 		return
 	}
 
 	var input models.CreateScheduleInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// Default duration
 	if input.Duration == 0 {
 		input.Duration = 50
 	}
 
-	// 1. Convert Schedule Slice to a Map for faster lookup
-	// Map Key: DayOfWeek (int), Value: Slice of Time Strings
 	scheduleMap := make(map[int][]string)
 	for _, day := range input.Schedule {
 		scheduleMap[day.DayOfWeek] = day.StartTimes
 	}
-
-	// 2. Parse Start/End Dates
 	currentDate, err := parseDate(input.StartDate)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
@@ -71,7 +68,6 @@ func CreateSlot(c *gin.Context) {
 
 	var slotsToCreate []models.Slot
 
-	// 3. Loop through every calendar date
 	for !currentDate.After(endDate) {
 
 		// Get the weekday of the current iteration (0=Sun, 1=Mon...)
@@ -111,7 +107,6 @@ func CreateSlot(c *gin.Context) {
 		return
 	}
 
-	// Batch Insert with "ON CONFLICT DO NOTHING"
 	// if a slot already exists for this psych at this time, skip it
 	err = config.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&slotsToCreate).Error
 
@@ -136,17 +131,17 @@ func CreateSlot(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        date   query     string  false  "Filter by date (YYYY-MM-DD)"
 // @Success      200    {array}   models.PsychologistScheduleResponse
+// @Failure      401 {object} models.ErrorResponse
 // @Router       /psychologist/slots [get]
 func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 	psychID := c.GetHeader("X-User-ID")
 	role := c.GetHeader("X-User-Role")
 
 	if role != "psychologist" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only psychologists can access this"})
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can access this"})
 		return
 	}
 
-	// Optional Date Filter
 	dateStr := c.Query("date")
 
 	query := config.DB.Where("psychologist_id = ?", psychID).Order("start_time asc")
@@ -161,11 +156,10 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 
 	var slots []models.Slot
 	if err := query.Find(&slots).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
 		return
 	}
 
-	// Collect Student IDs for gRPC
 	var studentIDs []string
 	for _, s := range slots {
 		if s.IsBooked && s.StudentID != nil {
@@ -173,7 +167,6 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 		}
 	}
 
-	// Batch Fetch Student Profiles
 	studentMap := make(map[string]string)
 	if len(studentIDs) > 0 {
 		grpcResp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{
@@ -311,7 +304,6 @@ func (h *BookingHandler) AddSessionNote(c *gin.Context) {
 		return
 	}
 
-	// Security: Ensure the psych owns this slot and it's actually booked
 	if slot.PsychologistID != psychID {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only add notes to your own sessions"})
 		return
@@ -376,4 +368,93 @@ func (h *BookingHandler) GetStudentHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, history)
+}
+
+// CancelBookingByPsychologist godoc
+// @Summary      Psychologist cancels a booked appointment
+// @Description  Psychologist cancels a session. Frees the slot and triggers a cancellation email to the student.
+// @Tags         psychologist-slots
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Slot ID (UUID)"
+// @Success      200  {object}  models.MessageResponse
+// @Failure      403  {object}  models.ErrorResponse "Not authorized"
+// @Failure      404  {object}  models.ErrorResponse "Slot not found"
+// @Failure      409  {object}  models.ErrorResponse "Slot is not booked"
+// @Router       /psychologist/slots/{id}/cancel [post]
+func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
+	slotID := c.Param("id")
+	psychID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can cancel appointments"})
+		return
+	}
+
+	var slot models.Slot
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "Slot not found"})
+		return
+	}
+
+	if slot.PsychologistID != psychID {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only cancel your own appointments"})
+		return
+	}
+
+	if !slot.IsBooked || slot.StudentID == nil {
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "This slot is not booked"})
+		return
+	}
+
+	studentID := *slot.StudentID
+
+	// Atomically free the slot
+	result := config.DB.Model(&models.Slot{}).
+		Where("id = ? AND version = ?", slot.ID, slot.Version).
+		Updates(map[string]interface{}{
+			"is_booked":             false,
+			"student_id":            nil,
+			"booking_type":          "",
+			"questionnaire_answers": "",
+			"version":               slot.Version + 1,
+		})
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "Update failed, try again"})
+		return
+	}
+
+	// Notify the Student
+	go func() {
+		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+			Ids: []string{studentID, psychID},
+		})
+
+		var studentEmail, psychName string
+		if err == nil {
+			for _, p := range resp.Profiles {
+				if p.Id == studentID {
+					studentEmail = p.Email
+				} else if p.Id == psychID {
+					psychName = p.FullName
+				}
+			}
+		}
+
+		if studentEmail != "" {
+			msg := clients.NotificationMessage{
+				Type:    "booking_cancellation_by_psychologist",
+				ToEmail: studentEmail,
+				Data: map[string]string{
+					"psychologist_name": psychName,
+					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+				},
+			}
+			h.RabbitMQ.PublishNotification(msg)
+		}
+	}()
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Appointment canceled and student notified"})
 }

@@ -1,12 +1,12 @@
 package models
 
-type RegisterResponse struct {
+type MessageResponse struct {
 	Message string `json:"message"`
 }
 
 type TokenResponse struct {
-	Token   string `json:"token"`
-	Message string `json:"message,omitempty"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type ErrorResponse struct {

@@ -23,6 +23,10 @@ import (
 func main() {
 
 	config.ConnectDB()
+	config.ConnectRabbitMQ()
+
+	defer config.RabbitConn.Close()
+	defer config.RabbitChannel.Close()
 
 	// Init gRPC Client
 	userClient, conn, err := clients.NewUserProfileClient()
@@ -31,9 +35,11 @@ func main() {
 	}
 	defer conn.Close()
 
+	rabbitMQ := clients.NewRabbitMQClient()
 	// Init Handler
 	h := &handlers.BookingHandler{
 		UserClient: userClient,
+		RabbitMQ:   rabbitMQ,
 	}
 
 	r := gin.Default()

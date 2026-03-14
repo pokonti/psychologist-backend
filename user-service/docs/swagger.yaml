@@ -73,6 +73,23 @@ info:
   title: User Service API
   version: "1.0"
 paths:
+  /admin/users:
+    get:
+      description: Returns all profiles (Students, Psychologists, Admins).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserProfile'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 'Admin: List all users'
+      tags:
+      - admin
   /users/me:
     get:
       description: Returns the profile of the currently authenticated user. In production,

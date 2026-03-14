@@ -41,10 +41,10 @@ message GetBatchUserProfilesRequest {
   repeated string ids = 1;
 }
 
-// A lighter user object for lists
 message BasicUserProfile {
   string id = 1;
   string full_name = 2;
+  string email = 3;
   // Add photo_url here later if you have it
 }
 

@@ -1,5 +1,20 @@
 basePath: /api/v1
 definitions:
+  handlers.AdminDashboard:
+    properties:
+      most_popular_psych_id:
+        type: string
+      most_popular_psych_name:
+        type: string
+      offline_ratio:
+        type: number
+      online_ratio:
+        type: number
+      total_bookings:
+        type: integer
+      total_waitlisted:
+        type: integer
+    type: object
   models.AddNoteInput:
     properties:
       notes:
@@ -98,8 +113,6 @@ definitions:
         type: boolean
       psychologist_id:
         type: string
-      psychologist_name:
-        type: string
       questionnaire_answers:
         type: string
       start_time:
@@ -192,6 +205,72 @@ info:
   title: KBTU Psychologist Booking Service API
   version: "1.0"
 paths:
+  /admin/bookings:
+    get:
+      description: Allows admin to see all booked slots across the platform.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SlotResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: View all bookings'
+      tags:
+      - admin
+  /admin/bookings/{id}/cancel:
+    post:
+      description: Allows admin to cancel any booking, even if they aren't the psychologist
+        or student.
+      parameters:
+      - description: Slot ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: Force cancel a booking'
+      tags:
+      - admin
+  /admin/dashboard:
+    get:
+      description: Returns global stats for the admin dashboard, including top psychologist.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AdminDashboard'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: Get system statistics'
+      tags:
+      - admin
   /psychologist/slots:
     get:
       description: Returns all slots for the logged-in psychologist, including student
@@ -291,6 +370,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an unbooked slot
+      tags:
+      - psychologist-slots
+  /psychologist/slots/{id}/cancel:
+    post:
+      description: Psychologist cancels a session. Frees the slot and triggers a cancellation
+        email to the student.
+      parameters:
+      - description: Slot ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "403":
+          description: Not authorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Slot is not booked
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Psychologist cancels a booked appointment
       tags:
       - psychologist-slots
   /psychologist/slots/{id}/notes:
