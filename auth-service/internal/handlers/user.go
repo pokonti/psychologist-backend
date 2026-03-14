@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/auth-service/config"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/auth-service/internal/models"
 	"github.com/pokonti/psychologist-backend/auth-service/internal/utils"
 	"github.com/pokonti/psychologist-backend/auth-service/middleware"
@@ -16,6 +17,7 @@ import (
 
 type AuthController struct {
 	UserClient userprofile.UserProfileServiceClient
+	RabbitMQ   *clients.RabbitMQClient
 }
 
 // Register godoc
@@ -25,7 +27,7 @@ type AuthController struct {
 // @Accept       json
 // @Produce      json
 // @Param        input body models.RegisterInput true "User Registration Info"
-// @Success      201  {object}  models.RegisterResponse
+// @Success      201  {object}  models.MessageResponse
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      409  {object}  models.ErrorResponse "User already exists"
 // @Failure      500  {object}  models.ErrorResponse
@@ -33,18 +35,18 @@ type AuthController struct {
 func (ac *AuthController) Register(c *gin.Context) {
 	var input models.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// 1. Check if user already exists
+	// Check if user already exists
 	var existingUser models.User
 	result := config.DB.Where("email = ?", input.Email).First(&existingUser)
 
 	if result.Error == nil {
 		// User Found
 		if existingUser.IsVerified {
-			c.JSON(http.StatusConflict, gin.H{"error": "User already registered and verified. Please login."})
+			c.JSON(http.StatusConflict, models.ErrorResponse{Error: "User already registered and verified. Please login."})
 			return
 		}
 
@@ -55,20 +57,25 @@ func (ac *AuthController) Register(c *gin.Context) {
 
 		// Update DB
 		if err := config.DB.Save(&existingUser).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update verification code"})
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to update verification code"})
 			return
 		}
 
 		// Send Email
-		go func() {
-			utils.SendVerificationEmail(existingUser.Email, newCode)
-		}()
+		msg := clients.NotificationMessage{
+			Type:    "auth_verification",
+			ToEmail: existingUser.Email,
+			Data: map[string]string{
+				"code": newCode,
+			},
+		}
+		go func() { ac.RabbitMQ.PublishNotification(msg) }()
 
-		c.JSON(http.StatusOK, gin.H{"message": "User already exists but not verified. Verification code resent."})
+		c.JSON(http.StatusOK, models.MessageResponse{Message: "User already exists but not verified. Verification code resent."})
 		return
 	}
 
-	// 2. New User Logic
+	// New User Logic
 	hashedPassword, _ := utils.HashPassword(input.Password)
 	verificationCode := utils.GenerateRandomCode()
 	userID := uuid.NewString()
@@ -90,20 +97,29 @@ func (ac *AuthController) Register(c *gin.Context) {
 	if err := tx.Create(&newUser).Error; err != nil {
 		tx.Rollback()
 		log.Printf("DB Error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register user"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to register user"})
 		return
 	}
 
-	// B. Send Email SYNCHRONOUSLY here to ensure it works before committing
-	// If email fails, we want to rollback so the user isn't stuck in DB without a code
-	if err := utils.SendVerificationEmail(newUser.Email, verificationCode); err != nil {
-		tx.Rollback() // Delete user from DB if email fails
-		log.Printf("Email Error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email. Please try again."})
+	// B. Publish to RabbitMQ
+	// We don't rollback if this fails here, because RabbitMQ itself is the "safe" place
+	msg := clients.NotificationMessage{
+		Type:    "auth_verification",
+		ToEmail: newUser.Email,
+		Data: map[string]string{
+			"code": verificationCode,
+		},
+	}
+
+	// We publish the message. If publishing fails, we CAN rollback.
+	if err := ac.RabbitMQ.PublishNotification(msg); err != nil {
+		tx.Rollback()
+		log.Printf("RabbitMQ Error: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to queue verification email"})
 		return
 	}
 
-	// C. Call User Service (Create Profile)
+	// C. Call User Service
 	// We do this inside the transaction too, or right before commit
 	_, err := ac.UserClient.CreateUserProfile(c.Request.Context(), &userprofile.CreateUserProfileRequest{
 		Id:    newUser.ID,
@@ -113,16 +129,13 @@ func (ac *AuthController) Register(c *gin.Context) {
 	if err != nil {
 		tx.Rollback() // Rollback Auth DB if User Service fails
 		log.Printf("gRPC Error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user profile"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to create user profile"})
 		return
 	}
 
-	// Commit Transaction
 	tx.Commit()
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Registration successful. Please check your email for verification code.",
-	})
+	c.JSON(http.StatusCreated, models.MessageResponse{Message: "Registration successful. Please check your email for verification code."})
 }
 
 // VerifyEmail godoc
@@ -139,28 +152,28 @@ func (ac *AuthController) Register(c *gin.Context) {
 func (ac *AuthController) VerifyEmail(c *gin.Context) {
 	var input models.VerifyInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	var user models.User
 	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "User not found"})
 		return
 	}
 
 	if user.IsVerified {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User already verified"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "User already verified"})
 		return
 	}
 
 	if time.Now().After(user.CodeExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Verification code expired"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Verification code expired"})
 		return
 	}
 
 	if user.VerificationCode != input.Code {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid verification code"})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "Invalid verification code"})
 		return
 	}
 
@@ -192,33 +205,97 @@ func (ac *AuthController) Login(c *gin.Context) {
 	var input models.LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	var user models.User
 	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "Invalid credentials"})
 		return
 	}
 
 	if !utils.CheckPasswordHash(input.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "Invalid credentials"})
 		return
 	}
 
 	if !user.IsVerified {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Please verify your email first"})
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Please verify your email first"})
+		return
+	}
+
+	if user.IsBlocked {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Your account has been blocked by the administrator."})
 		return
 	}
 
 	token, err := middleware.GenerateJWT(user.ID, user.Email, user.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to generate token"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User successfully logged in",
-		"token":   token,
+
+	refreshToken := uuid.NewString()
+
+	config.DB.Model(&user).Update("refresh_token", refreshToken)
+
+	c.JSON(http.StatusOK, models.TokenResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
+}
+
+// RefreshToken godoc
+// @Summary      Get a new access token
+// @Description  Uses a valid refresh token to generate a new 15-minute access token. Implements Refresh Token Rotation (returns a new refresh token too).
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.RefreshInput true "Refresh Token"
+// @Success      200 {object} models.TokenResponse
+// @Failure      401 {object} models.ErrorResponse "Invalid or expired refresh token"
+// @Router       /refresh [post]
+func (ac *AuthController) RefreshToken(c *gin.Context) {
+	var input models.RefreshInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Find user by Refresh Token
+	var user models.User
+	if err := config.DB.Where("refresh_token = ?", input.RefreshToken).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "Invalid refresh token. Please log in again."})
+		return
+	}
+
+	if user.IsBlocked {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Account is blocked"})
+		return
+	}
+
+	newAccessToken, _ := middleware.GenerateJWT(user.ID, user.Email, user.Role)
+
+	newRefreshToken := uuid.NewString()
+	config.DB.Model(&user).Update("refresh_token", newRefreshToken)
+
+	c.JSON(http.StatusOK, models.TokenResponse{
+		Token:        newAccessToken,
+		RefreshToken: newRefreshToken,
+	})
+}
+
+// Logout godoc
+// @Summary      Logout user
+// @Description  Revokes the refresh token, forcing the user to log in again once their access token expires.
+// @Tags         auth
+// @Security     BearerAuth
+// @Router       /logout [post]
+func (ac *AuthController) Logout(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+
+	config.DB.Model(&models.User{}).Where("id = ?", userID).Update("refresh_token", "")
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Successfully logged out"})
 }

@@ -15,6 +15,111 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/bookings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows admin to see all booked slots across the platform.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin: View all bookings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SlotResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/bookings/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows admin to cancel any booking, even if they aren't the psychologist or student.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin: Force cancel a booking",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns global stats for the admin dashboard, including top psychologist.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin: Get system statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AdminDashboard"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/psychologist/slots": {
             "get": {
                 "security": [
@@ -163,6 +268,58 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/slots/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist cancels a session. Frees the slot and triggers a cancellation email to the student.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Psychologist cancels a booked appointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot is not booked",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -726,6 +883,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.AdminDashboard": {
+            "type": "object",
+            "properties": {
+                "most_popular_psych_id": {
+                    "type": "string"
+                },
+                "most_popular_psych_name": {
+                    "type": "string"
+                },
+                "offline_ratio": {
+                    "type": "number"
+                },
+                "online_ratio": {
+                    "type": "number"
+                },
+                "total_bookings": {
+                    "type": "integer"
+                },
+                "total_waitlisted": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.AddNoteInput": {
             "type": "object",
             "required": [
@@ -868,9 +1048,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "psychologist_id": {
-                    "type": "string"
-                },
-                "psychologist_name": {
                     "type": "string"
                 },
                 "questionnaire_answers": {

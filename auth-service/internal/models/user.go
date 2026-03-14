@@ -11,6 +11,9 @@ type User struct {
 	VerificationCode string    `json:"-"`
 	CodeExpiresAt    time.Time `json:"-"`
 	IsVerified       bool      `gorm:"default:false" json:"is_verified"`
+	IsBlocked        bool      `gorm:"default:false" json:"is_blocked"`
+
+	RefreshToken string `gorm:"index" json:"-"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

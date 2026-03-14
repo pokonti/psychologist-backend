@@ -1,4 +1,4 @@
-package utils
+package email
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"os"
 )
 
-// loginAuth is a custom implementation of smtp.Auth for the LOGIN mechanism
 type loginAuth struct {
 	username, password string
 }
@@ -15,11 +14,9 @@ type loginAuth struct {
 func LoginAuth(username, password string) smtp.Auth {
 	return &loginAuth{username, password}
 }
-
 func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 	return "LOGIN", []byte{}, nil
 }
-
 func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		switch string(fromServer) {
@@ -34,7 +31,7 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
-var SendVerificationEmail = func(toEmail string, code string) error {
+func SendEmail(toEmail string, subject string, bodyHTML string) error {
 	from := os.Getenv("SMTP_EMAIL")
 	password := os.Getenv("SMTP_PASSWORD")
 	host := os.Getenv("SMTP_HOST")
@@ -45,19 +42,13 @@ var SendVerificationEmail = func(toEmail string, code string) error {
 	}
 
 	addr := fmt.Sprintf("%s:%s", host, port)
-
 	auth := LoginAuth(from, password)
 
-	subject := "Subject: Verify your account\n"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	body := fmt.Sprintf("<html><body><h3>Your verification code is: <b>%s</b></h3></body></html>", code)
+	headers := fmt.Sprintf("From: %s\nTo: %s\nSubject: %s\n", from, toEmail, subject)
+	msg := []byte(headers + mime + bodyHTML)
 
-	headers := fmt.Sprintf("From: %s\nTo: %s\n", from, toEmail)
-	msg := []byte(headers + subject + mime + body)
-
-	// SendMail automatically handles STARTTLS if the port is 587
-	err := smtp.SendMail(addr, auth, from, []string{toEmail}, msg)
-	if err != nil {
+	if err := smtp.SendMail(addr, auth, from, []string{toEmail}, msg); err != nil {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 

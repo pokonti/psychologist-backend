@@ -6,11 +6,15 @@ import (
 	"os"
 
 	"github.com/pokonti/psychologist-backend/auth-service/internal/models"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
+var RabbitConn *amqp.Connection
+var RabbitChannel *amqp.Channel
+var RabbitQueue amqp.Queue
 
 func ConnectDB() {
 	dsn := fmt.Sprintf(
@@ -33,6 +37,38 @@ func ConnectDB() {
 	}
 
 	log.Println("Database connected")
+}
+
+func ConnectRabbitMQ() {
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+	if rabbitURL == "" {
+		rabbitURL = "amqp://guest:guest@rabbitmq:5672/"
+	}
+
+	var err error
+	RabbitConn, err = amqp.Dial(rabbitURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+
+	RabbitChannel, err = RabbitConn.Channel()
+	if err != nil {
+		log.Fatalf("Failed to open a channel: %v", err)
+	}
+
+	RabbitQueue, err = RabbitChannel.QueueDeclare(
+		"notifications_queue",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare a queue: %v", err)
+	}
+
+	log.Println("Auth Service connected to RabbitMQ")
 }
 
 func getEnv(key, fallback string) string {

@@ -15,5 +15,9 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 		api.PUT("/me", profileHandler.UpdateMyProfile)
 		api.GET("/psychologists", profileHandler.GetAllPsychologists)
 	}
+	admin := api.Group("/admin")
+	{
+		admin.GET("/users", profileHandler.ListAllUsers)
+	}
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

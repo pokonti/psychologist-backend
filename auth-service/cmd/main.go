@@ -23,6 +23,10 @@ func main() {
 
 	config.ConnectDB()
 
+	config.ConnectRabbitMQ()
+	defer config.RabbitConn.Close()
+	defer config.RabbitChannel.Close()
+
 	// Init gRPC Client
 	userClient, conn, err := clients.NewUserProfileClient()
 	if err != nil {
@@ -30,9 +34,11 @@ func main() {
 	}
 	defer conn.Close()
 
+	rabbitMQ := clients.NewRabbitMQClient()
 	// Init Controller
 	authController := &handlers.AuthController{
 		UserClient: userClient,
+		RabbitMQ:   rabbitMQ,
 	}
 
 	routes.SetupRoutes(r, authController)

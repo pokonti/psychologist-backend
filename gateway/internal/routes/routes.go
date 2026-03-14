@@ -12,15 +12,16 @@ func SetupRoutes(r *gin.Engine) {
 	api.POST("/auth/register", proxy.Forward("http://auth-service:8083"))
 	api.POST("/auth/login", proxy.Forward("http://auth-service:8083"))
 	api.POST("/auth/verify", proxy.Forward("http://auth-service:8083"))
+	api.POST("/auth/refresh", proxy.Forward("http://auth-service:8083"))
 
 	// Protected routes
 	protected := api.Group("", middleware.JWTAuth())
 	protected.GET("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.PUT("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.GET("/users/psychologists", proxy.Forward("http://user-service:8081"))
-
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))
 	protected.GET("/slots/calendar", proxy.Forward("http://booking-service:8084"))
+	protected.POST("/auth/logout", proxy.Forward("http://auth-service:8083"))
 
 	// Psychologist
 	psychOnly := protected.Group("/psychologist", middleware.RequireRoles("psychologist", "admin"))
@@ -30,6 +31,7 @@ func SetupRoutes(r *gin.Engine) {
 		psychOnly.DELETE("/slots/:id", proxy.Forward("http://booking-service:8084"))
 		psychOnly.PUT("/slots/:id/notes", proxy.Forward("http://booking-service:8084"))
 		psychOnly.GET("/students/:student_id/history", proxy.Forward("http://booking-service:8084"))
+		psychOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Student
@@ -42,6 +44,16 @@ func SetupRoutes(r *gin.Engine) {
 		studentOnly.POST("/waitlist", proxy.Forward("http://booking-service:8084"))
 		studentOnly.GET("/waitlist", proxy.Forward("http://booking-service:8084"))
 		studentOnly.DELETE("/waitlist/:id", proxy.Forward("http://booking-service:8084"))
+	}
+
+	adminOnly := protected.Group("/admin", middleware.RequireRoles("admin"))
+	{
+		adminOnly.GET("/dashboard", proxy.Forward("http://booking-service:8084"))
+		adminOnly.GET("/bookings", proxy.Forward("http://booking-service:8084"))
+		adminOnly.POST("/bookings/:id/cancel", proxy.Forward("http://booking-service:8084"))
+		adminOnly.POST("/users", proxy.Forward("http://auth-service:8083"))
+		adminOnly.PATCH("/users/:id/block", proxy.Forward("http://auth-service:8083"))
+		adminOnly.GET("/users", proxy.Forward("http://user-service:8081"))
 	}
 
 	// Proxy Swagger UIs

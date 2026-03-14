@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pokonti/psychologist-backend/booking-service/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
@@ -140,13 +142,13 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 // @Failure      409  {object}  models.ErrorResponse "slot already booked or just booked"
 // @Failure      500  {object}  models.ErrorResponse "database error"
 // @Router       /student/slots/{id}/book [post]
-func BookSlot(c *gin.Context) {
+func (h *BookingHandler) BookSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
 	var input models.BookSlotInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -189,12 +191,42 @@ func BookSlot(c *gin.Context) {
 	// Check if the row was actually touched
 	if result.RowsAffected == 0 {
 		// If 0 rows were updated, it means the Version changed between
-		// step 1 and step 3 (Someone else booked it milliseconds ago)
 		c.JSON(http.StatusConflict, models.ErrorResponse{
 			Error: "Slot was just booked by someone else",
 		})
 		return
 	}
+
+	go func() {
+		grpcResp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+			Ids: []string{studentID, slot.PsychologistID},
+		})
+
+		var studentEmail, psychName string
+		if err == nil {
+			for _, p := range grpcResp.Profiles {
+				if p.Id == studentID {
+					studentEmail = p.Email
+				} else if p.Id == slot.PsychologistID {
+					psychName = p.FullName
+				}
+			}
+		}
+
+		formattedDate := slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04")
+
+		msg := clients.NotificationMessage{
+			Type:    "booking_confirmation",
+			ToEmail: studentEmail,
+			Data: map[string]string{
+				"psychologist_name": psychName,
+				"datetime":          formattedDate,
+				"format":            input.BookingType,
+			},
+		}
+
+		h.RabbitMQ.PublishNotification(msg)
+	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{
 		Message: "Booking successful",
@@ -334,8 +366,8 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		return
 	}
 
-	// Free up the slot (Optimistic locking used here too)
-	// We use a map to explicitly set fields to nil / empty strings
+	psychID := slot.PsychologistID
+
 	result := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
@@ -359,6 +391,38 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		})
 		return
 	}
+
+	go func() {
+		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+			Ids: []string{studentID, psychID},
+		})
+
+		var studentEmail, psychName string
+		if err == nil {
+			for _, p := range resp.Profiles {
+				if p.Id == studentID {
+					studentEmail = p.Email
+				} else if p.Id == psychID {
+					psychName = p.FullName
+				}
+			}
+		}
+
+		if studentEmail != "" {
+			msg := clients.NotificationMessage{
+				Type:    "booking_cancellation",
+				ToEmail: studentEmail,
+				Data: map[string]string{
+					"psychologist_name": psychName,
+					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+				},
+			}
+			h.RabbitMQ.PublishNotification(msg)
+		}
+
+		dateStr := slot.StartTime.Format("2006-01-02")
+		h.notifyWaitlist(psychID, dateStr, psychName)
+	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{
 		Message: "Appointment successfully canceled",
@@ -486,6 +550,39 @@ func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Transaction failed"})
 		return
 	}
+
+	go func() {
+		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+			Ids: []string{studentID, newSlot.PsychologistID},
+		})
+
+		var studentEmail, psychName string
+		if err == nil {
+			for _, p := range resp.Profiles {
+				if p.Id == studentID {
+					studentEmail = p.Email
+				} else if p.Id == newSlot.PsychologistID {
+					psychName = p.FullName
+				}
+			}
+		}
+
+		if studentEmail != "" {
+			msg := clients.NotificationMessage{
+				Type:    "booking_reschedule",
+				ToEmail: studentEmail,
+				Data: map[string]string{
+					"psychologist_name": psychName,
+					"datetime":          newSlot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+					"format":            oldSlot.BookingType,
+				},
+			}
+			h.RabbitMQ.PublishNotification(msg)
+		}
+
+		oldDateStr := oldSlot.StartTime.Format("2006-01-02")
+		h.notifyWaitlist(oldSlot.PsychologistID, oldDateStr, psychName)
+	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{
 		Message: "Appointment successfully rescheduled",
