@@ -152,6 +152,12 @@ const docTemplate = `{
                                 "$ref": "#/definitions/models.PsychologistScheduleResponse"
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
                     }
                 }
             },
@@ -368,6 +374,70 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/slots/{id}/recommendations": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist writes post-session recommendations. This is visible to the student and triggers an email notification.",
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Add recommendations for a student",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID (UUID of the completed session)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "The recommendations text",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RecommendationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Recommendations successfully saved and student notified",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized or not the owner of this session",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database or internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     }
                 }
@@ -1064,6 +1134,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RecommendationInput": {
+            "type": "object",
+            "required": [
+                "recommendations"
+            ],
+            "properties": {
+                "recommendations": {
+                    "type": "string"
+                }
+            }
+        },
         "models.RescheduleInput": {
             "type": "object",
             "required": [
@@ -1136,6 +1217,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start_time": {
+                    "type": "string"
+                },
+                "student_recommendations": {
                     "type": "string"
                 }
             }

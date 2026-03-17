@@ -426,7 +426,6 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 		return
 	}
 
-	// Notify the Student
 	go func() {
 		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
 			Ids: []string{studentID, psychID},
@@ -457,4 +456,82 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{Message: "Appointment canceled and student notified"})
+}
+
+// AddRecommendation godoc
+// @Summary      Add recommendations for a student
+// @Description  Psychologist writes post-session recommendations. This is visible to the student and triggers an email notification.
+// @Tags         psychologist-slots
+// @Security     BearerAuth
+// @Param        id       path      string                      true  "Slot ID (UUID of the completed session)"
+// @Param        request  body      models.RecommendationInput  true  "The recommendations text"
+// @Success      200      {object}  models.MessageResponse      "Recommendations successfully saved and student notified"
+// @Failure      400      {object}  models.ErrorResponse        "Invalid request body"
+// @Failure      403      {object}  models.ErrorResponse        "Not authorized or not the owner of this session"
+// @Failure      404      {object}  models.ErrorResponse        "Slot not found"
+// @Failure      500      {object}  models.ErrorResponse        "Database or internal server error"
+// @Router       /psychologist/slots/{id}/recommendations [put]
+func (h *BookingHandler) AddRecommendation(c *gin.Context) {
+	slotID := c.Param("id")
+	psychID := c.GetHeader("X-User-ID")
+
+	if c.GetHeader("X-User-Role") != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can do this"})
+		return
+	}
+
+	var input models.RecommendationInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	var slot models.Slot
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "Slot not found"})
+		return
+	}
+
+	if slot.PsychologistID != psychID || !slot.IsBooked || slot.StudentID == nil {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Cannot add recommendations to this slot"})
+		return
+	}
+
+	slot.StudentRecommendations = input.Recommendations
+	if err := config.DB.Save(&slot).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
+		return
+	}
+
+	go func() {
+		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+			Ids: []string{*slot.StudentID, psychID},
+		})
+
+		var studentEmail, psychName string
+		if err == nil {
+			for _, p := range resp.Profiles {
+				if p.Id == *slot.StudentID {
+					studentEmail = p.Email
+				}
+				if p.Id == psychID {
+					psychName = p.FullName
+				}
+			}
+		}
+
+		if studentEmail != "" {
+			msg := clients.NotificationMessage{
+				Type:    "new_recommendation",
+				ToEmail: studentEmail,
+				Data: map[string]string{
+					"psychologist_name": psychName,
+					"date":              slot.StartTime.Format("02 Jan 2006"),
+				},
+			}
+			h.RabbitMQ.PublishNotification(msg)
+		}
+	}()
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Recommendations shared with student"})
 }

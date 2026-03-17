@@ -29,3 +29,7 @@ type JoinWaitlistInput struct {
 	PsychologistID string `json:"psychologist_id" binding:"required"`
 	Date           string `json:"date" binding:"required"`
 }
+
+type RecommendationInput struct {
+	Recommendations string `json:"recommendations" binding:"required"`
+}

@@ -43,13 +43,14 @@ type PsychologistScheduleResponse struct {
 }
 
 type StudentAppointmentResponse struct {
-	ID                   string    `json:"id"`
-	StartTime            time.Time `json:"start_time"`
-	Duration             int       `json:"duration"`
-	BookingType          string    `json:"booking_type"`
-	PsychologistID       string    `json:"psychologist_id"`
-	PsychologistName     string    `json:"psychologist_name"`
-	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
+	ID                     string    `json:"id"`
+	StartTime              time.Time `json:"start_time"`
+	Duration               int       `json:"duration"`
+	BookingType            string    `json:"booking_type"`
+	PsychologistID         string    `json:"psychologist_id"`
+	PsychologistName       string    `json:"psychologist_name"`
+	QuestionnaireAnswers   string    `json:"questionnaire_answers,omitempty"`
+	StudentRecommendations string    `json:"student_recommendations,omitempty"`
 }
 
 type StudentHistoryResponse struct {

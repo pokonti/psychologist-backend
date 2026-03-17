@@ -110,6 +110,15 @@ func processMessage(body []byte) {
 			<br>
 			<p><i>Note: Waitlist alerts are sent to everyone waiting for this day. Booking is first-come, first-served.</i></p>
 		`, msg.Data["psychologist_name"], msg.Data["date"])
+	case "new_recommendation":
+		subject = "Post-Session Recommendations 📝"
+		htmlBody = fmt.Sprintf(`
+			<h2>Recommendations from %s</h2>
+			<p>Your psychologist has shared some notes and recommendations from your session on <b>%s</b>.</p>
+			<p>Please log in to your KBTU Care dashboard and visit "My Appointments" to view them.</p>
+			<br>
+			<p>Take care,<br>The KBTU Care Team</p>
+		`, msg.Data["psychologist_name"], msg.Data["date"])
 
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)

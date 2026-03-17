@@ -32,6 +32,7 @@ func SetupRoutes(r *gin.Engine) {
 		psychOnly.PUT("/slots/:id/notes", proxy.Forward("http://booking-service:8084"))
 		psychOnly.GET("/students/:student_id/history", proxy.Forward("http://booking-service:8084"))
 		psychOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))
+		psychOnly.PUT("/slots/:id/recommendations", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Student
