@@ -122,6 +122,13 @@ definitions:
       student_name:
         type: string
     type: object
+  models.RecommendationInput:
+    properties:
+      recommendations:
+        type: string
+    required:
+    - recommendations
+    type: object
   models.RescheduleInput:
     properties:
       new_slot_id:
@@ -170,6 +177,8 @@ definitions:
       questionnaire_answers:
         type: string
       start_time:
+        type: string
+      student_recommendations:
         type: string
     type: object
   models.StudentHistoryResponse:
@@ -289,6 +298,10 @@ paths:
             items:
               $ref: '#/definitions/models.PsychologistScheduleResponse'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get psychologist's own schedule
@@ -434,6 +447,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Add private notes to a session
+      tags:
+      - psychologist-slots
+  /psychologist/slots/{id}/recommendations:
+    put:
+      description: Psychologist writes post-session recommendations. This is visible
+        to the student and triggers an email notification.
+      parameters:
+      - description: Slot ID (UUID of the completed session)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: The recommendations text
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RecommendationInput'
+      responses:
+        "200":
+          description: Recommendations successfully saved and student notified
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or not the owner of this session
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database or internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add recommendations for a student
       tags:
       - psychologist-slots
   /psychologist/students/{student_id}/history:

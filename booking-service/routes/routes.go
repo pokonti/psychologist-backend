@@ -24,6 +24,7 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			psych.PUT("/slots/:id/notes", h.AddSessionNote)
 			psych.GET("/students/:student_id/history", h.GetStudentHistory)
 			psych.POST("/slots/:id/cancel", h.CancelBookingByPsychologist)
+			psych.PUT("/slots/:id/recommendations", h.AddRecommendation)
 		}
 
 		// Student routes

@@ -303,13 +303,14 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 		}
 
 		response = append(response, models.StudentAppointmentResponse{
-			ID:                   s.ID,
-			StartTime:            s.StartTime,
-			Duration:             s.Duration,
-			BookingType:          s.BookingType,
-			PsychologistID:       s.PsychologistID,
-			PsychologistName:     psychName,
-			QuestionnaireAnswers: s.QuestionnaireAnswers,
+			ID:                     s.ID,
+			StartTime:              s.StartTime,
+			Duration:               s.Duration,
+			BookingType:            s.BookingType,
+			PsychologistID:         s.PsychologistID,
+			PsychologistName:       psychName,
+			QuestionnaireAnswers:   s.QuestionnaireAnswers,
+			StudentRecommendations: s.StudentRecommendations,
 		})
 	}
 
