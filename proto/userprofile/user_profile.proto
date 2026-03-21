@@ -9,6 +9,7 @@ service UserProfileService {
   rpc CreateUserProfile (CreateUserProfileRequest) returns (CreateUserProfileResponse);
   rpc GetUserProfileByID (GetUserProfileByIDRequest) returns (GetUserProfileByIDResponse);
   rpc GetBatchUserProfiles (GetBatchUserProfilesRequest) returns (GetBatchUserProfilesResponse);
+  rpc UpdateUserPhone (UpdateUserPhoneRequest) returns (UpdateUserPhoneResponse);
 }
 
 message CreateUserProfileRequest {
@@ -50,4 +51,13 @@ message BasicUserProfile {
 
 message GetBatchUserProfilesResponse {
   repeated BasicUserProfile profiles = 1;
+}
+
+message UpdateUserPhoneRequest {
+  string id = 1;
+  string phone = 2;
+}
+
+message UpdateUserPhoneResponse {
+  bool success = 1;
 }

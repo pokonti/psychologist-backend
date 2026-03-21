@@ -40,6 +40,7 @@ type PsychologistScheduleResponse struct {
 	StudentID            *string   `json:"student_id,omitempty"`
 	StudentName          string    `json:"student_name"`
 	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
+	PhoneNumber          string    `json:"phone_number,omitempty"`
 }
 
 type StudentAppointmentResponse struct {

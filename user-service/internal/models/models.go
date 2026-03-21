@@ -22,6 +22,7 @@ type UserProfile struct {
 	Experience          int       `json:"experience,omitempty"`
 	Description         string    `json:"description,omitempty"`
 	Rating              float32   `json:"rating"`
+	RatingCount         int       `json:"rating_count"`
 	NotificationChannel string    `json:"notification_channel"` // "email", "whatsapp", "none"
 
 	CreatedAt time.Time      `json:"created_at"`

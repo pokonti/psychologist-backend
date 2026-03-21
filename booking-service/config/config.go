@@ -15,6 +15,7 @@ var DB *gorm.DB
 var RabbitConn *amqp.Connection
 var RabbitChannel *amqp.Channel
 var RabbitQueue amqp.Queue
+var UserEventsQueue amqp.Queue
 
 func ConnectDB() {
 	dsn := fmt.Sprintf(
@@ -62,6 +63,19 @@ func ConnectRabbitMQ() {
 		false,
 		nil,
 	)
+	if err != nil {
+		log.Fatalf("Failed to declare a queue: %v", err)
+	}
+
+	UserEventsQueue, err = RabbitChannel.QueueDeclare(
+		"user_events_queue",
+		true,  // Durable
+		false, // Delete when unused
+		false, // Exclusive
+		false, // No-wait
+		nil,   // Arguments
+	)
+
 	if err != nil {
 		log.Fatalf("Failed to declare a queue: %v", err)
 	}

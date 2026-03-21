@@ -81,3 +81,17 @@ func (s *UserProfileServer) GetBatchUserProfiles(ctx context.Context, req *userp
 
 	return &userprofile.GetBatchUserProfilesResponse{Profiles: profiles}, nil
 }
+
+func (s *UserProfileServer) UpdateUserPhone(ctx context.Context, req *userprofile.UpdateUserPhoneRequest) (*userprofile.UpdateUserPhoneResponse, error) {
+	var profile models.UserProfile
+	if err, _ := s.Repo.GetByID(ctx, req.Id); err != nil {
+		return nil, status.Error(codes.NotFound, "profile not found")
+	}
+
+	profile.Phone = req.Phone
+	if err := s.Repo.Update(ctx, &profile); err != nil {
+		return nil, status.Error(codes.Internal, "failed to update phone")
+	}
+
+	return &userprofile.UpdateUserPhoneResponse{Success: true}, nil
+}

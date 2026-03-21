@@ -38,13 +38,15 @@ func SetupRoutes(r *gin.Engine) {
 	// Student
 	studentOnly := protected.Group("/student", middleware.RequireRoles("student", "admin"))
 	{
-		studentOnly.POST("/slots/:id/book", proxy.Forward("http://booking-service:8084"))
+		studentOnly.POST("/slots/:id/reserve", proxy.Forward("http://booking-service:8084"))
+		studentOnly.POST("/slots/:id/confirm", proxy.Forward("http://booking-service:8084"))
 		studentOnly.GET("/appointments", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/reschedule", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/waitlist", proxy.Forward("http://booking-service:8084"))
 		studentOnly.GET("/waitlist", proxy.Forward("http://booking-service:8084"))
 		studentOnly.DELETE("/waitlist/:id", proxy.Forward("http://booking-service:8084"))
+		studentOnly.POST("/slots/:id/rate", proxy.Forward("http://booking-service:8084"))
 	}
 
 	adminOnly := protected.Group("/admin", middleware.RequireRoles("admin"))

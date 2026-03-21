@@ -300,6 +300,9 @@ const docTemplate = `{
                 "rating": {
                     "type": "number"
                 },
+                "rating_count": {
+                    "type": "integer"
+                },
                 "role": {
                     "description": "e.g. \"client\", \"psychologist\", \"admin\"",
                     "type": "string"
