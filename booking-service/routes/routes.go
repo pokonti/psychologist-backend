@@ -30,7 +30,8 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 		// Student routes
 		student := api.Group("/student")
 		{
-			student.POST("/slots/:id/book", h.BookSlot)
+			student.POST("/slots/:id/reserve", h.ReserveSlot)
+			student.POST("/slots/:id/confirm", h.ConfirmSlot)
 			student.GET("/appointments", h.GetMyAppointments)
 			student.POST("/slots/:id/cancel", h.CancelAppointment)
 			student.POST("/slots/:id/reschedule", h.RescheduleAppointment)
@@ -38,6 +39,7 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			student.POST("/waitlist", h.JoinWaitlist)
 			student.GET("/waitlist", h.GetMyWaitlist)
 			student.DELETE("/waitlist/:id", h.LeaveWaitlist)
+			student.POST("/slots/:id/rate", h.RateSession)
 		}
 	}
 

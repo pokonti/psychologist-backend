@@ -15,6 +15,7 @@ type DaySchedule struct {
 type BookSlotInput struct {
 	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
 	Answers     string `json:"answers"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
 }
 
 type RescheduleInput struct {
@@ -32,4 +33,9 @@ type JoinWaitlistInput struct {
 
 type RecommendationInput struct {
 	Recommendations string `json:"recommendations" binding:"required"`
+}
+
+type RateSessionInput struct {
+	Rating int    `json:"rating" binding:"required,min=1,max=5"` // Must be 1-5
+	Review string `json:"review" binding:"omitempty,max=500"`    // Optional text review
 }

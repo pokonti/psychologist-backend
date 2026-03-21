@@ -88,7 +88,6 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 	var slots []models.Slot
 	if err := config.DB.
 		Where("psychologist_id = ?", psychID).
-		Where("status = ?", models.StatusAvailable).
 		Where("start_time >= ? AND start_time < ?", date, nextDay).
 		Order("start_time asc").
 		Find(&slots).Error; err != nil {
@@ -257,6 +256,7 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 			"status":                models.StatusBooked,
 			"booking_type":          input.BookingType,
 			"questionnaire_answers": input.Answers,
+			"phone_number":          input.PhoneNumber,
 			"version":               slot.Version + 1,
 		})
 
@@ -295,6 +295,14 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 		}
 
 		h.RabbitMQ.PublishNotification(msg)
+
+		_, err = h.UserClient.UpdateUserPhone(context.Background(), &userprofile.UpdateUserPhoneRequest{
+			Id:    studentID,
+			Phone: input.PhoneNumber,
+		})
+		if err != nil {
+			log.Printf("Failed to sync phone to user-service: %v", err)
+		}
 	}()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Appointment confirmed successfully!"})
@@ -646,4 +654,86 @@ func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 	c.JSON(http.StatusOK, models.MessageResponse{
 		Message: "Appointment successfully rescheduled",
 	})
+}
+
+// RateSession godoc
+// @Summary      Rate a completed session
+// @Description  Student leaves a 1-5 star rating and an optional review for a completed appointment.
+// @Tags         student-booking
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path   string            true  "Slot ID"
+// @Param        request body   models.RateSessionInput  true  "Rating and Review"
+// @Success      200 {object} models.MessageResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid rating (must be 1-5) or session not finished"
+// @Failure      403 {object} models.ErrorResponse "Not authorized"
+// @Failure      404 {object} models.ErrorResponse "Slot not found"
+// @Failure      409 {object} models.ErrorResponse "Session already rated"
+// @Router       /student/slots/{id}/rate [post]
+func (h *BookingHandler) RateSession(c *gin.Context) {
+	slotID := c.Param("id")
+	studentID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "student" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only students can rate sessions"})
+		return
+	}
+
+	var input models.RateSessionInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	var slot models.Slot
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "Slot not found"})
+		return
+	}
+
+	if slot.Status != models.StatusBooked || slot.StudentID == nil || *slot.StudentID != studentID {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only rate your own booked sessions"})
+		return
+	}
+
+	// Time Check
+	if time.Now().Before(slot.StartTime) {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "You cannot rate a session that hasn't happened yet"})
+		return
+	}
+
+	// Duplicate Check: Ensure they haven't rated it already
+	if slot.Rating > 0 {
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "You have already rated this session"})
+		return
+	}
+
+	// Save the Rating
+	result := config.DB.Model(&models.Slot{}).Where("id = ?", slotID).Updates(map[string]interface{}{
+		"rating": input.Rating,
+		"review": input.Review,
+	})
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error while saving rating"})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "Could not save rating. Please try again."})
+		return
+	}
+
+	go func() {
+		msg := clients.UserEventMessage{
+			Type:           "new_rating",
+			PsychologistID: slot.PsychologistID,
+			Rating:         input.Rating,
+		}
+		h.RabbitMQ.PublishUserEvent(msg)
+	}()
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Thank you for your feedback!"})
 }

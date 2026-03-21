@@ -28,6 +28,11 @@ type Slot struct {
 
 	StudentRecommendations string `gorm:"type:text" json:"student_recommendations,omitempty"`
 
+	Rating int    `gorm:"default:0" json:"rating,omitempty"` // 1 to 5 stars (0 means unrated)
+	Review string `gorm:"type:text" json:"review,omitempty"` // Written feedback
+
+	PhoneNumber string `gorm:"type:varchar(20)" json:"phone_number,omitempty"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Version   int       `gorm:"default:1" json:"-"`

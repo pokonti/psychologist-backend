@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 	"github.com/pokonti/psychologist-backend/user-service/config"
+	"github.com/pokonti/psychologist-backend/user-service/internal/consumer"
 	grpcserver "github.com/pokonti/psychologist-backend/user-service/internal/grpc"
 	"github.com/pokonti/psychologist-backend/user-service/internal/handlers"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
@@ -32,6 +33,12 @@ func main() {
 	if err := db.AutoMigrate(&models.UserProfile{}); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
+
+	rabbitConn, rabbitCh, rabbitQueue := config.ConnectRabbitMQ()
+	defer rabbitConn.Close()
+	defer rabbitCh.Close()
+
+	go consumer.StartListening(rabbitCh, rabbitQueue)
 
 	profileRepo := repository.NewGormProfileRepository(db)
 

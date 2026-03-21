@@ -418,6 +418,102 @@ func (x *GetBatchUserProfilesResponse) GetProfiles() []*BasicUserProfile {
 	return nil
 }
 
+type UpdateUserPhoneRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Phone         string                 `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserPhoneRequest) Reset() {
+	*x = UpdateUserPhoneRequest{}
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPhoneRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPhoneRequest) ProtoMessage() {}
+
+func (x *UpdateUserPhoneRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserPhoneRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserPhoneRequest) Descriptor() ([]byte, []int) {
+	return file_proto_userprofile_user_profile_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateUserPhoneRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateUserPhoneRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+type UpdateUserPhoneResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserPhoneResponse) Reset() {
+	*x = UpdateUserPhoneResponse{}
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPhoneResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPhoneResponse) ProtoMessage() {}
+
+func (x *UpdateUserPhoneResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserPhoneResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserPhoneResponse) Descriptor() ([]byte, []int) {
+	return file_proto_userprofile_user_profile_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateUserPhoneResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_proto_userprofile_user_profile_proto protoreflect.FileDescriptor
 
 const file_proto_userprofile_user_profile_proto_rawDesc = "" +
@@ -447,11 +543,17 @@ const file_proto_userprofile_user_profile_proto_rawDesc = "" +
 	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\"Y\n" +
 	"\x1cGetBatchUserProfilesResponse\x129\n" +
-	"\bprofiles\x18\x01 \x03(\v2\x1d.userprofile.BasicUserProfileR\bprofiles2\xcc\x02\n" +
+	"\bprofiles\x18\x01 \x03(\v2\x1d.userprofile.BasicUserProfileR\bprofiles\">\n" +
+	"\x16UpdateUserPhoneRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05phone\x18\x02 \x01(\tR\x05phone\"3\n" +
+	"\x17UpdateUserPhoneResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\xaa\x03\n" +
 	"\x12UserProfileService\x12b\n" +
 	"\x11CreateUserProfile\x12%.userprofile.CreateUserProfileRequest\x1a&.userprofile.CreateUserProfileResponse\x12e\n" +
 	"\x12GetUserProfileByID\x12&.userprofile.GetUserProfileByIDRequest\x1a'.userprofile.GetUserProfileByIDResponse\x12k\n" +
-	"\x14GetBatchUserProfiles\x12(.userprofile.GetBatchUserProfilesRequest\x1a).userprofile.GetBatchUserProfilesResponseBGZEgithub.com/pokonti/psychologist-backend/proto/userprofile;userprofileb\x06proto3"
+	"\x14GetBatchUserProfiles\x12(.userprofile.GetBatchUserProfilesRequest\x1a).userprofile.GetBatchUserProfilesResponse\x12\\\n" +
+	"\x0fUpdateUserPhone\x12#.userprofile.UpdateUserPhoneRequest\x1a$.userprofile.UpdateUserPhoneResponseBGZEgithub.com/pokonti/psychologist-backend/proto/userprofile;userprofileb\x06proto3"
 
 var (
 	file_proto_userprofile_user_profile_proto_rawDescOnce sync.Once
@@ -465,7 +567,7 @@ func file_proto_userprofile_user_profile_proto_rawDescGZIP() []byte {
 	return file_proto_userprofile_user_profile_proto_rawDescData
 }
 
-var file_proto_userprofile_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_userprofile_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_userprofile_user_profile_proto_goTypes = []any{
 	(*CreateUserProfileRequest)(nil),     // 0: userprofile.CreateUserProfileRequest
 	(*CreateUserProfileResponse)(nil),    // 1: userprofile.CreateUserProfileResponse
@@ -474,17 +576,21 @@ var file_proto_userprofile_user_profile_proto_goTypes = []any{
 	(*GetBatchUserProfilesRequest)(nil),  // 4: userprofile.GetBatchUserProfilesRequest
 	(*BasicUserProfile)(nil),             // 5: userprofile.BasicUserProfile
 	(*GetBatchUserProfilesResponse)(nil), // 6: userprofile.GetBatchUserProfilesResponse
+	(*UpdateUserPhoneRequest)(nil),       // 7: userprofile.UpdateUserPhoneRequest
+	(*UpdateUserPhoneResponse)(nil),      // 8: userprofile.UpdateUserPhoneResponse
 }
 var file_proto_userprofile_user_profile_proto_depIdxs = []int32{
 	5, // 0: userprofile.GetBatchUserProfilesResponse.profiles:type_name -> userprofile.BasicUserProfile
 	0, // 1: userprofile.UserProfileService.CreateUserProfile:input_type -> userprofile.CreateUserProfileRequest
 	2, // 2: userprofile.UserProfileService.GetUserProfileByID:input_type -> userprofile.GetUserProfileByIDRequest
 	4, // 3: userprofile.UserProfileService.GetBatchUserProfiles:input_type -> userprofile.GetBatchUserProfilesRequest
-	1, // 4: userprofile.UserProfileService.CreateUserProfile:output_type -> userprofile.CreateUserProfileResponse
-	3, // 5: userprofile.UserProfileService.GetUserProfileByID:output_type -> userprofile.GetUserProfileByIDResponse
-	6, // 6: userprofile.UserProfileService.GetBatchUserProfiles:output_type -> userprofile.GetBatchUserProfilesResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	7, // 4: userprofile.UserProfileService.UpdateUserPhone:input_type -> userprofile.UpdateUserPhoneRequest
+	1, // 5: userprofile.UserProfileService.CreateUserProfile:output_type -> userprofile.CreateUserProfileResponse
+	3, // 6: userprofile.UserProfileService.GetUserProfileByID:output_type -> userprofile.GetUserProfileByIDResponse
+	6, // 7: userprofile.UserProfileService.GetBatchUserProfiles:output_type -> userprofile.GetBatchUserProfilesResponse
+	8, // 8: userprofile.UserProfileService.UpdateUserPhone:output_type -> userprofile.UpdateUserPhoneResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -501,7 +607,7 @@ func file_proto_userprofile_user_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_userprofile_user_profile_proto_rawDesc), len(file_proto_userprofile_user_profile_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
