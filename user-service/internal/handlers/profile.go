@@ -148,7 +148,6 @@ func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 		return
 	}
 
-	// Map full profiles to safe public DTOs
 	var publicProfiles []models.PublicPsychologistResponse
 	for _, p := range profiles {
 		publicProfiles = append(publicProfiles, models.PublicPsychologistResponse{
@@ -164,7 +163,6 @@ func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 		})
 	}
 
-	// Return empty array instead of null if no psychologists exist
 	if len(publicProfiles) == 0 {
 		c.JSON(http.StatusOK, []models.PublicPsychologistResponse{})
 		return

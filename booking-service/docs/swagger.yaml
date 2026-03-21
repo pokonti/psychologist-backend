@@ -704,7 +704,54 @@ paths:
       - student-booking
   /student/slots/{id}/confirm:
     post:
-      responses: {}
+      consumes:
+      - application/json
+      description: Finalizes the reservation by submitting the questionnaire and student's
+        phone number. Requires a previous 'reserve' action.
+      parameters:
+      - description: Slot ID (Must be currently 'reserved')
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Booking details (type, phone, answers)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BookSlotInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or no active reservation
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Reservation expired or conflict
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database or gRPC error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Confirm a booked appointment
+      tags:
+      - student-booking
   /student/slots/{id}/reschedule:
     post:
       consumes:

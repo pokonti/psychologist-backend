@@ -218,13 +218,27 @@ func (h *BookingHandler) ReserveSlot(c *gin.Context) {
 	})
 }
 
-// 2. CONFIRM SLOT (Step 2 of booking)
-// @Router /student/slots/{id}/confirm [post]
+// ConfirmSlot godoc
+// @Summary      Confirm a booked appointment
+// @Description  Finalizes the reservation by submitting the questionnaire and student's phone number. Requires a previous 'reserve' action.
+// @Tags         student-booking
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path   string               true  "Slot ID (Must be currently 'reserved')"
+// @Param        request body   models.BookSlotInput true  "Booking details (type, phone, answers)"
+// @Success      200 {object}   models.MessageResponse
+// @Failure      400 {object}   models.ErrorResponse "Invalid request body"
+// @Failure      403 {object}   models.ErrorResponse "Not authorized or no active reservation"
+// @Failure      404 {object}   models.ErrorResponse "Slot not found"
+// @Failure      409 {object}   models.ErrorResponse "Reservation expired or conflict"
+// @Failure      500 {object}   models.ErrorResponse "Database or gRPC error"
+// @Router       /student/slots/{id}/confirm [post]
 func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
-	var input models.BookSlotInput // Contains booking_type and answers
+	var input models.BookSlotInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error: err.Error()})
@@ -250,7 +264,6 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 		return
 	}
 
-	// Finalize Booking
 	res := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
@@ -297,7 +310,7 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 		h.RabbitMQ.PublishNotification(msg)
 	}()
 
-	c.JSON(http.StatusOK, gin.H{"message": "Appointment confirmed successfully!"})
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Appointment confirmed successfully!"})
 }
 
 // GetMyAppointments godoc
@@ -348,7 +361,6 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 		}
 	}
 
-	// Call User Service via gRPC
 	psychMap := make(map[string]string)
 	grpcResp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{
 		Ids: psychIDs,
@@ -418,7 +430,6 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		return
 	}
 
-	// Check if it's actually booked
 	if slot.Status != models.StatusBooked || slot.StudentID == nil {
 		c.JSON(http.StatusConflict, models.ErrorResponse{
 			Error: "This slot is not currently booked",
@@ -426,7 +437,7 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		return
 	}
 
-	// Security Check: Make sure the student owns this booking
+	// Security Check
 	if *slot.StudentID != studentID {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{
 			Error: "You can only cancel your own appointments",
