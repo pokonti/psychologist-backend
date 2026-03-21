@@ -13,11 +13,12 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 	{
 		api.GET("/me", profileHandler.GetMyProfile)
 		api.PUT("/me", profileHandler.UpdateMyProfile)
-		api.GET("/psychologists", profileHandler.GetAllPsychologists)
+		api.GET("/psychologists", profileHandler.GetPublicPsychologists)
 	}
 	admin := api.Group("/admin")
 	{
 		admin.GET("/users", profileHandler.ListAllUsers)
+		admin.GET("/psychologists", profileHandler.GetAllPsychologists)
 	}
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

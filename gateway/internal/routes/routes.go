@@ -55,6 +55,7 @@ func SetupRoutes(r *gin.Engine) {
 		adminOnly.POST("/users", proxy.Forward("http://auth-service:8083"))
 		adminOnly.PATCH("/users/:id/block", proxy.Forward("http://auth-service:8083"))
 		adminOnly.GET("/users", proxy.Forward("http://user-service:8081"))
+		adminOnly.GET("/psychologists", proxy.Forward("http://user-service:8081"))
 	}
 
 	// Proxy Swagger UIs

@@ -6,7 +6,7 @@ type SlotResponse struct {
 	ID               string    `json:"id"`
 	StartTime        time.Time `json:"start_time"`
 	Duration         int       `json:"duration"`
-	IsBooked         bool      `json:"is_booked"`
+	Status           string    `json:"status"`
 	BookingType      string    `json:"booking_type"`
 	PsychologistID   string    `json:"psychologist_id"`
 	PsychologistName string    `json:"psychologist_name"`
@@ -34,7 +34,7 @@ type PsychologistScheduleResponse struct {
 	ID                   string    `json:"id"`
 	StartTime            time.Time `json:"start_time"`
 	Duration             int       `json:"duration"`
-	IsBooked             bool      `json:"is_booked"`
+	Status               string    `json:"status"`
 	BookingType          string    `json:"booking_type"`
 	PsychologistID       string    `json:"psychologist_id"`
 	StudentID            *string   `json:"student_id,omitempty"`

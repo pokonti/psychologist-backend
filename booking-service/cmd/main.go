@@ -8,6 +8,7 @@ import (
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	_ "github.com/pokonti/psychologist-backend/booking-service/docs"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/handlers"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/worker"
 	"github.com/pokonti/psychologist-backend/booking-service/routes"
 )
 
@@ -27,6 +28,8 @@ func main() {
 
 	defer config.RabbitConn.Close()
 	defer config.RabbitChannel.Close()
+
+	worker.StartReservationCleanup()
 
 	// Init gRPC Client
 	userClient, conn, err := clients.NewUserProfileClient()

@@ -67,3 +67,21 @@ func (h *BookingHandler) notifyWaitlist(psychID string, dateStr string, psychNam
 		}
 	}
 }
+
+// Helper function to get the start and end of a week for a given date
+// Assuming Monday is the first day of the week
+func getWeekRange(date time.Time) (time.Time, time.Time) {
+	// Find how many days we are past Monday (0 = Sunday, 1 = Monday, etc.)
+	weekday := int(date.Weekday())
+	if weekday == 0 {
+		weekday = 7 // Make Sunday the last day of the week (7) instead of 0
+	}
+
+	// Subtract days to get to Monday 00:00:00
+	startOfWeek := date.AddDate(0, 0, -weekday+1).Truncate(24 * time.Hour)
+
+	// Add 7 days to get to next Monday 00:00:00 (which is the exclusive end of this week)
+	endOfWeek := startOfWeek.AddDate(0, 0, 7)
+
+	return startOfWeek, endOfWeek
+}
