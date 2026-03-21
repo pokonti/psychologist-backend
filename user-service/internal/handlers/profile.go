@@ -130,16 +130,16 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
-// GetAllPsychologists godoc
-// @Summary      List all psychologists
-// @Description  Returns a list of all users whose role is 'psychologist'.
-// @Tags         psychologists
+// GetPublicPsychologists godoc
+// @Summary      List psychologists for booking
+// @Description  Returns a sanitized list of psychologists for students to browse. Hides sensitive data.
+// @Tags         users
 // @Produce      json
-// @Success      200  {array}   models.UserProfile
+// @Success      200  {array}   models.PublicPsychologistResponse
 // @Failure      500  {object}  models.ErrorResponse "database error"
 // @Security     BearerAuth
 // @Router       /users/psychologists [get]
-func (h *ProfileHandler) GetAllPsychologists(c *gin.Context) {
+func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 	profiles, err := h.Repo.GetAllPsychologists(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
@@ -147,5 +147,26 @@ func (h *ProfileHandler) GetAllPsychologists(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusOK, profiles)
+
+	var publicProfiles []models.PublicPsychologistResponse
+	for _, p := range profiles {
+		publicProfiles = append(publicProfiles, models.PublicPsychologistResponse{
+			ID:             p.ID,
+			FullName:       p.FullName,
+			Gender:         p.Gender,
+			Bio:            p.Bio,
+			Specialization: p.Specialization,
+			AvatarURL:      p.AvatarURL,
+			Experience:     p.Experience,
+			Description:    p.Description,
+			Rating:         p.Rating,
+		})
+	}
+
+	if len(publicProfiles) == 0 {
+		c.JSON(http.StatusOK, []models.PublicPsychologistResponse{})
+		return
+	}
+
+	c.JSON(http.StatusOK, publicProfiles)
 }

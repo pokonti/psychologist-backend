@@ -27,7 +27,7 @@ func (h *BookingHandler) GetAllBookings(c *gin.Context) {
 	}
 
 	var slots []models.Slot
-	if err := config.DB.Where("is_booked = ?", true).Find(&slots).Error; err != nil {
+	if err := config.DB.Where("status = ?", models.StatusBooked).Find(&slots).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
 		return
 	}
@@ -57,9 +57,9 @@ func (h *BookingHandler) ForceCancelBooking(c *gin.Context) {
 
 	// Logic: Same as CancelAppointment, but skip the "is owner" check
 	result := config.DB.Model(&models.Slot{}).
-		Where("id = ? AND is_booked = ?", slotID, true).
+		Where("id = ? AND status = ?", slotID, models.StatusBooked).
 		Updates(map[string]interface{}{
-			"is_booked":             false,
+			"status":                models.StatusAvailable,
 			"student_id":            nil,
 			"booking_type":          "",
 			"questionnaire_answers": "",
@@ -101,8 +101,8 @@ func (h *BookingHandler) GetDashboard(c *gin.Context) {
 	var total int64
 
 	// Booked stats
-	config.DB.Model(&models.Slot{}).Where("is_booked = ?", true).Count(&stats.TotalBookings)
-	config.DB.Model(&models.Slot{}).Where("is_booked = ?", true).Count(&total)
+	config.DB.Model(&models.Slot{}).Where("status = ?", models.StatusBooked).Count(&stats.TotalBookings)
+	config.DB.Model(&models.Slot{}).Where("status = ?", models.StatusBooked).Count(&total)
 
 	var onlineCount int64
 	config.DB.Model(&models.Slot{}).Where("booking_type = ?", "online").Count(&onlineCount)
@@ -121,7 +121,7 @@ func (h *BookingHandler) GetDashboard(c *gin.Context) {
 	var res Result
 	err := config.DB.Model(&models.Slot{}).
 		Select("psychologist_id, count(*) as count").
-		Where("is_booked = ?", true).
+		Where("status = ?", models.StatusBooked).
 		Group("psychologist_id").
 		Order("count desc").
 		Limit(1).

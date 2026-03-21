@@ -707,7 +707,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Student cancels their own booking. This frees up the slot for other students to book.",
+                "description": "Student cancels their own booking. This resets the slot to 'available' and notifies the waitlist.",
                 "produces": [
                     "application/json"
                 ],
@@ -726,7 +726,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Appointment successfully canceled",
                         "schema": {
                             "$ref": "#/definitions/models.MessageResponse"
                         }
@@ -764,6 +764,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/student/slots/{id}/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Finalizes the reservation by submitting the questionnaire and student's phone number. Requires a previous 'reserve' action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Confirm a booked appointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID (Must be currently 'reserved')",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Booking details (type, phone, answers)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BookSlotInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized or no active reservation",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Reservation expired or conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database or gRPC error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/student/slots/{id}/reschedule": {
             "post": {
                 "security": [
@@ -771,7 +847,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Student moves their booking from one slot to another available slot. This is done atomically so they don't lose their original slot if the new one is taken.",
+                "description": "Student moves their booking from one slot to another available slot atomically. Alerts waitlist for the old slot.",
                 "consumes": [
                     "application/json"
                 ],
@@ -802,13 +878,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Appointment successfully rescheduled",
                         "schema": {
                             "$ref": "#/definitions/models.MessageResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request body or same slot IDs",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -833,6 +909,76 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/student/slots/{id}/reserve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student books a specific slot. Uses optimistic locking on the version field to avoid double-booking.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Book a slot as a student",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Booking details: type and answers",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BookSlotInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "slot already booked or just booked",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "database error",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -1114,9 +1260,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_booked": {
-                    "type": "boolean"
-                },
                 "psychologist_id": {
                     "type": "string"
                 },
@@ -1124,6 +1267,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start_time": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "student_id": {
@@ -1181,9 +1327,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_booked": {
-                    "type": "boolean"
-                },
                 "psychologist_id": {
                     "type": "string"
                 },
@@ -1191,6 +1334,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start_time": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }

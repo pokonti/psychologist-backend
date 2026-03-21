@@ -90,7 +90,7 @@ func CreateSlot(c *gin.Context) {
 					PsychologistID: psychologistID,
 					StartTime:      slotTime,
 					Duration:       input.Duration,
-					IsBooked:       false,
+					Status:         models.StatusAvailable,
 					Version:        1,
 				})
 			}
@@ -162,7 +162,7 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 
 	var studentIDs []string
 	for _, s := range slots {
-		if s.IsBooked && s.StudentID != nil {
+		if s.Status != models.StatusAvailable && s.StudentID != nil {
 			studentIDs = append(studentIDs, *s.StudentID)
 		}
 	}
@@ -196,7 +196,7 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 			ID:                   s.ID,
 			StartTime:            s.StartTime,
 			Duration:             s.Duration,
-			IsBooked:             s.IsBooked,
+			Status:               s.Status,
 			BookingType:          s.BookingType,
 			PsychologistID:       s.PsychologistID,
 			StudentID:            s.StudentID,
@@ -251,9 +251,9 @@ func (h *BookingHandler) DeleteSlot(c *gin.Context) {
 
 	// Prevent deleting a slot if a student has already booked it.
 	// (Canceling a booked appointment will be a separate feature that notifies the student).
-	if slot.IsBooked {
+	if slot.Status != models.StatusAvailable {
 		c.JSON(http.StatusConflict, models.ErrorResponse{
-			Error: "Cannot delete this slot because it is already booked by a student. Please use the Cancel Appointment feature.",
+			Error: "Cannot delete a slot that is reserved or booked",
 		})
 		return
 	}
@@ -308,7 +308,7 @@ func (h *BookingHandler) AddSessionNote(c *gin.Context) {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only add notes to your own sessions"})
 		return
 	}
-	if !slot.IsBooked {
+	if slot.Status != models.StatusBooked {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Cannot add notes to an unbooked slot"})
 		return
 	}
@@ -344,7 +344,7 @@ func (h *BookingHandler) GetStudentHistory(c *gin.Context) {
 	// Fetch all past bookings between THIS psychologist and THIS student
 	var slots []models.Slot
 	if err := config.DB.
-		Where("psychologist_id = ? AND student_id = ? AND is_booked = ?", psychID, studentID, true).
+		Where("psychologist_id = ? AND student_id = ? AND status = ?", psychID, studentID, models.StatusBooked).
 		Order("start_time desc").
 		Find(&slots).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
@@ -403,7 +403,7 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 		return
 	}
 
-	if !slot.IsBooked || slot.StudentID == nil {
+	if slot.Status != models.StatusBooked || slot.StudentID == nil {
 		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "This slot is not booked"})
 		return
 	}
@@ -414,7 +414,7 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 	result := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":             false,
+			"status":                models.StatusAvailable,
 			"student_id":            nil,
 			"booking_type":          "",
 			"questionnaire_answers": "",
@@ -492,7 +492,7 @@ func (h *BookingHandler) AddRecommendation(c *gin.Context) {
 		return
 	}
 
-	if slot.PsychologistID != psychID || !slot.IsBooked || slot.StudentID == nil {
+	if slot.PsychologistID != psychID || slot.Status != models.StatusBooked || slot.StudentID == nil {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Cannot add recommendations to this slot"})
 		return
 	}

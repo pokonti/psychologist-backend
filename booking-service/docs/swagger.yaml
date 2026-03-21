@@ -109,13 +109,13 @@ definitions:
         type: integer
       id:
         type: string
-      is_booked:
-        type: boolean
       psychologist_id:
         type: string
       questionnaire_answers:
         type: string
       start_time:
+        type: string
+      status:
         type: string
       student_id:
         type: string
@@ -153,13 +153,13 @@ definitions:
         type: integer
       id:
         type: string
-      is_booked:
-        type: boolean
       psychologist_id:
         type: string
       psychologist_name:
         type: string
       start_time:
+        type: string
+      status:
         type: string
     type: object
   models.StudentAppointmentResponse:
@@ -662,8 +662,8 @@ paths:
       - student-booking
   /student/slots/{id}/cancel:
     post:
-      description: Student cancels their own booking. This frees up the slot for other
-        students to book.
+      description: Student cancels their own booking. This resets the slot to 'available'
+        and notifies the waitlist.
       parameters:
       - description: Slot ID (UUID)
         in: path
@@ -674,7 +674,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Appointment successfully canceled
           schema:
             $ref: '#/definitions/models.MessageResponse'
         "400":
@@ -702,13 +702,62 @@ paths:
       summary: Cancel a booked appointment
       tags:
       - student-booking
+  /student/slots/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Finalizes the reservation by submitting the questionnaire and student's
+        phone number. Requires a previous 'reserve' action.
+      parameters:
+      - description: Slot ID (Must be currently 'reserved')
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Booking details (type, phone, answers)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BookSlotInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized or no active reservation
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Reservation expired or conflict
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database or gRPC error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Confirm a booked appointment
+      tags:
+      - student-booking
   /student/slots/{id}/reschedule:
     post:
       consumes:
       - application/json
       description: Student moves their booking from one slot to another available
-        slot. This is done atomically so they don't lose their original slot if the
-        new one is taken.
+        slot atomically. Alerts waitlist for the old slot.
       parameters:
       - description: Old Slot ID (The one currently booked)
         in: path
@@ -725,11 +774,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Appointment successfully rescheduled
           schema:
             $ref: '#/definitions/models.MessageResponse'
         "400":
-          description: Invalid request
+          description: Invalid request body or same slot IDs
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "403":
@@ -751,6 +800,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Reschedule an appointment
+      tags:
+      - student-booking
+  /student/slots/{id}/reserve:
+    post:
+      consumes:
+      - application/json
+      description: Student books a specific slot. Uses optimistic locking on the version
+        field to avoid double-booking.
+      parameters:
+      - description: Slot ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Booking details: type and answers'
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BookSlotInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: slot already booked or just booked
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Book a slot as a student
       tags:
       - student-booking
   /student/waitlist:

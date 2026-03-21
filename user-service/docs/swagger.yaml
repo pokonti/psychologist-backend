@@ -6,6 +6,27 @@ definitions:
         example: Invalid start_date
         type: string
     type: object
+  models.PublicPsychologistResponse:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      description:
+        type: string
+      experience:
+        type: integer
+      full_name:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      rating:
+        type: number
+      specialization:
+        type: string
+    type: object
   models.UpdateProfileRequest:
     properties:
       avatar_url:
@@ -85,6 +106,10 @@ paths:
             items:
               $ref: '#/definitions/models.UserProfile'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
       summary: 'Admin: List all users'
@@ -158,7 +183,8 @@ paths:
       - profile
   /users/psychologists:
     get:
-      description: Returns a list of all users whose role is 'psychologist'.
+      description: Returns a sanitized list of psychologists for students to browse.
+        Hides sensitive data.
       produces:
       - application/json
       responses:
@@ -166,7 +192,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserProfile'
+              $ref: '#/definitions/models.PublicPsychologistResponse'
             type: array
         "500":
           description: database error
@@ -174,9 +200,9 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List all psychologists
+      summary: List psychologists for booking
       tags:
-      - psychologists
+      - users
 securityDefinitions:
   BearerAuth:
     in: header

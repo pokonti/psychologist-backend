@@ -4,15 +4,21 @@ import (
 	"time"
 )
 
+const (
+	StatusAvailable = "available"
+	StatusReserved  = "reserved"
+	StatusBooked    = "booked"
+)
+
 type Slot struct {
 	ID             string    `gorm:"type:uuid;primary_key" json:"id"`
 	PsychologistID string    `gorm:"type:uuid;not null;uniqueIndex:idx_psych_time" json:"psychologist_id"`
 	StartTime      time.Time `gorm:"not null;uniqueIndex:idx_psych_time" json:"start_time"`
 	Duration       int       `gorm:"default:50" json:"duration"` // in minutes
 
-	// Booking Info
-	IsBooked  bool    `gorm:"default:false" json:"is_booked"`
-	StudentID *string `gorm:"type:uuid;default:null" json:"student_id"` // Nullable
+	Status     string     `gorm:"default:'available';index" json:"status"`  // available, reserved, booked
+	ReservedAt *time.Time `json:"reserved_at,omitempty"`                    // When the 20-min lock started
+	StudentID  *string    `gorm:"type:uuid;default:null" json:"student_id"` // Nullable
 
 	BookingType string `gorm:"default:null" json:"booking_type"` // "online" or "offline"
 

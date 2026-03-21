@@ -47,7 +47,7 @@ func (h *BookingHandler) GetCalendarAvailability(c *gin.Context) {
 	config.DB.Model(&models.Slot{}).
 		Select("TO_CHAR(start_time, 'YYYY-MM-DD')").
 		Where("psychologist_id = ?", psychID).
-		Where("is_booked = ?", false).
+		Where("status = ?", models.StatusAvailable).
 		Where("start_time >= ? AND start_time < (?::date + '1 month'::interval)", startDate, startDate).
 		Group("TO_CHAR(start_time, 'YYYY-MM-DD')").
 		Find(&availableDays)
@@ -88,7 +88,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 	var slots []models.Slot
 	if err := config.DB.
 		Where("psychologist_id = ?", psychID).
-		Where("is_booked = ?", false).
+		Where("status = ?", models.StatusAvailable).
 		Where("start_time >= ? AND start_time < ?", date, nextDay).
 		Order("start_time asc").
 		Find(&slots).Error; err != nil {
@@ -118,7 +118,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 			ID:               s.ID,
 			StartTime:        s.StartTime,
 			Duration:         s.Duration,
-			IsBooked:         s.IsBooked,
+			Status:           s.Status,
 			PsychologistID:   s.PsychologistID,
 			PsychologistName: psychName,
 		})
@@ -127,7 +127,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// BookSlot godoc
+// ReserveSlot godoc
 // @Summary      Book a slot as a student
 // @Description  Student books a specific slot. Uses optimistic locking on the version field to avoid double-booking.
 // @Tags         student-booking
@@ -142,58 +142,140 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 // @Failure      409  {object}  models.ErrorResponse "slot already booked or just booked"
 // @Failure      500  {object}  models.ErrorResponse "database error"
 // @Router       /student/slots/{id}/book [post]
-func (h *BookingHandler) BookSlot(c *gin.Context) {
+// 1. RESERVE SLOT (Step 1 of booking)
+// @Router /student/slots/{id}/reserve [post]
+func (h *BookingHandler) ReserveSlot(c *gin.Context) {
+	slotID := c.Param("id")
+	studentID := c.GetHeader("X-User-ID")
+
+	var slot models.Slot
+	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Error: "Slot not found"})
+		return
+	}
+
+	if slot.Status != models.StatusAvailable {
+		c.JSON(http.StatusConflict, models.ErrorResponse{
+			Error: "Slot is no longer available"})
+		return
+	}
+
+	// Calculate boundaries for the requested slot's date
+	startOfDay := slot.StartTime.Truncate(24 * time.Hour)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+	startOfWeek, endOfWeek := getWeekRange(slot.StartTime)
+
+	var dailyCount, weeklyCount int64
+
+	// Check Daily Limit (Max 1 per day)
+	config.DB.Model(&models.Slot{}).
+		Where("student_id = ? AND status IN ?", studentID, []string{models.StatusReserved, models.StatusBooked}).
+		Where("start_time >= ? AND start_time < ?", startOfDay, endOfDay).
+		Count(&dailyCount)
+
+	if dailyCount >= 1 {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Error: "You can only book 1 appointment per day.",
+		})
+		return
+	}
+
+	// Check Weekly Limit (Max 2 per week)
+	config.DB.Model(&models.Slot{}).
+		Where("student_id = ? AND status IN ?", studentID, []string{models.StatusReserved, models.StatusBooked}).
+		Where("start_time >= ? AND start_time < ?", startOfWeek, endOfWeek).
+		Count(&weeklyCount)
+
+	if weeklyCount >= 2 {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Error: "You have reached the maximum limit of 2 appointments per week.",
+		})
+		return
+	}
+
+	now := time.Now()
+
+	// Optimistic Update to Reserved
+	res := config.DB.Model(&models.Slot{}).
+		Where("id = ? AND version = ?", slot.ID, slot.Version).
+		Updates(map[string]interface{}{
+			"status":      models.StatusReserved,
+			"student_id":  studentID,
+			"reserved_at": now,
+			"version":     slot.Version + 1,
+		})
+
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusConflict, models.ErrorResponse{
+			Error: "Slot was just taken by someone else"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Slot reserved for 20 minutes. Please complete the questionnaire.",
+		"expires_at": now.Add(20 * time.Minute),
+	})
+}
+
+// ConfirmSlot godoc
+// @Summary      Confirm a booked appointment
+// @Description  Finalizes the reservation by submitting the questionnaire and student's phone number. Requires a previous 'reserve' action.
+// @Tags         student-booking
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path   string               true  "Slot ID (Must be currently 'reserved')"
+// @Param        request body   models.BookSlotInput true  "Booking details (type, phone, answers)"
+// @Success      200 {object}   models.MessageResponse
+// @Failure      400 {object}   models.ErrorResponse "Invalid request body"
+// @Failure      403 {object}   models.ErrorResponse "Not authorized or no active reservation"
+// @Failure      404 {object}   models.ErrorResponse "Slot not found"
+// @Failure      409 {object}   models.ErrorResponse "Reservation expired or conflict"
+// @Failure      500 {object}   models.ErrorResponse "Database or gRPC error"
+// @Router       /student/slots/{id}/confirm [post]
+func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
 	var input models.BookSlotInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error()})
 		return
 	}
 
 	var slot models.Slot
 	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Error: "Slot not found",
-		})
+			Error: "Slot not found"})
 		return
 	}
 
-	if slot.IsBooked {
+	if slot.Status != models.StatusReserved || slot.StudentID == nil || *slot.StudentID != studentID {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Error: "You do not have an active reservation for this slot"})
+		return
+	}
+
+	if slot.ReservedAt != nil && time.Since(*slot.ReservedAt) > 15*time.Minute {
 		c.JSON(http.StatusConflict, models.ErrorResponse{
-			Error: "Slot is already booked",
-		})
+			Error: "Your reservation has expired"})
 		return
 	}
 
-	// OPTIMISTIC UPDATE
-	// UPDATE slots SET is_booked=true, student_id='...', version=2
-	// WHERE id='...' AND version=1
-	// We increment version manually to invalidate other requests
-	result := config.DB.Model(&models.Slot{}).
+	res := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":             true,
-			"student_id":            studentID,
+			"status":                models.StatusBooked,
 			"booking_type":          input.BookingType,
 			"questionnaire_answers": input.Answers,
 			"version":               slot.Version + 1,
 		})
 
-	if result.Error != nil {
+	if res.RowsAffected == 0 {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error: "Database error",
-		})
-		return
-	}
-
-	// Check if the row was actually touched
-	if result.RowsAffected == 0 {
-		// If 0 rows were updated, it means the Version changed between
-		c.JSON(http.StatusConflict, models.ErrorResponse{
-			Error: "Slot was just booked by someone else",
-		})
+			Error: "Failed to confirm booking"})
 		return
 	}
 
@@ -228,9 +310,7 @@ func (h *BookingHandler) BookSlot(c *gin.Context) {
 		h.RabbitMQ.PublishNotification(msg)
 	}()
 
-	c.JSON(http.StatusOK, models.MessageResponse{
-		Message: "Booking successful",
-	})
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Appointment confirmed successfully!"})
 }
 
 // GetMyAppointments godoc
@@ -257,7 +337,7 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 	// Fetch slots from DB booked by this student
 	var slots []models.Slot
 	if err := config.DB.
-		Where("student_id = ? AND is_booked = ?", studentID, true).
+		Where("student_id = ? AND status = ?", studentID, models.StatusBooked).
 		Order("start_time asc").
 		Find(&slots).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
@@ -281,7 +361,6 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 		}
 	}
 
-	// Call User Service via gRPC
 	psychMap := make(map[string]string)
 	grpcResp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{
 		Ids: psychIDs,
@@ -319,17 +398,17 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 
 // CancelAppointment godoc
 // @Summary      Cancel a booked appointment
-// @Description  Student cancels their own booking. This frees up the slot for other students to book.
+// @Description  Student cancels their own booking. This resets the slot to 'available' and notifies the waitlist.
 // @Tags         student-booking
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      string  true  "Slot ID (UUID)"
-// @Success      200  {object}  models.MessageResponse
-// @Failure      400  {object}  models.ErrorResponse "Invalid request"
-// @Failure      403  {object}  models.ErrorResponse "Not authorized or not the owner"
-// @Failure      404  {object}  models.ErrorResponse "Slot not found"
-// @Failure      409  {object}  models.ErrorResponse "Slot is not booked"
-// @Failure      500  {object}  models.ErrorResponse "Database error"
+// @Success      200  {object}  models.MessageResponse "Appointment successfully canceled"
+// @Failure      400  {object}  models.ErrorResponse   "Invalid request"
+// @Failure      403  {object}  models.ErrorResponse   "Not authorized or not the owner"
+// @Failure      404  {object}  models.ErrorResponse   "Slot not found"
+// @Failure      409  {object}  models.ErrorResponse   "Slot is not booked"
+// @Failure      500  {object}  models.ErrorResponse   "Database error"
 // @Router       /student/slots/{id}/cancel [post]
 func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 	slotID := c.Param("id")
@@ -351,15 +430,14 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		return
 	}
 
-	// Check if it's actually booked
-	if !slot.IsBooked || slot.StudentID == nil {
+	if slot.Status != models.StatusBooked || slot.StudentID == nil {
 		c.JSON(http.StatusConflict, models.ErrorResponse{
 			Error: "This slot is not currently booked",
 		})
 		return
 	}
 
-	// Security Check: Make sure the student owns this booking
+	// Security Check
 	if *slot.StudentID != studentID {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{
 			Error: "You can only cancel your own appointments",
@@ -372,7 +450,7 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 	result := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":             false,
+			"status":                models.StatusAvailable,
 			"student_id":            nil,
 			"booking_type":          "",
 			"questionnaire_answers": "",
@@ -432,19 +510,19 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 
 // RescheduleAppointment godoc
 // @Summary      Reschedule an appointment
-// @Description  Student moves their booking from one slot to another available slot. This is done atomically so they don't lose their original slot if the new one is taken.
+// @Description  Student moves their booking from one slot to another available slot atomically. Alerts waitlist for the old slot.
 // @Tags         student-booking
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id       path      string                  true  "Old Slot ID (The one currently booked)"
 // @Param        request  body      models.RescheduleInput  true  "The new Slot ID to move to"
-// @Success      200      {object}  models.MessageResponse
-// @Failure      400      {object}  models.ErrorResponse "Invalid request"
-// @Failure      403      {object}  models.ErrorResponse "Not authorized or not the owner"
-// @Failure      404      {object}  models.ErrorResponse "Slot not found"
-// @Failure      409      {object}  models.ErrorResponse "New slot already booked or race condition"
-// @Failure      500      {object}  models.ErrorResponse "Database error"
+// @Success      200      {object}  models.MessageResponse  "Appointment successfully rescheduled"
+// @Failure      400      {object}  models.ErrorResponse    "Invalid request body or same slot IDs"
+// @Failure      403      {object}  models.ErrorResponse    "Not authorized or not the owner"
+// @Failure      404      {object}  models.ErrorResponse    "Slot not found"
+// @Failure      409      {object}  models.ErrorResponse    "New slot already booked or race condition"
+// @Failure      500      {object}  models.ErrorResponse    "Database error"
 // @Router       /student/slots/{id}/reschedule [post]
 func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 	oldSlotID := c.Param("id")
@@ -483,8 +561,7 @@ func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 		return
 	}
 
-	// Verify ownership
-	if !oldSlot.IsBooked || oldSlot.StudentID == nil || *oldSlot.StudentID != studentID {
+	if oldSlot.Status != models.StatusBooked || oldSlot.StudentID == nil || *oldSlot.StudentID != studentID {
 		tx.Rollback()
 		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "You can only reschedule your own active appointments"})
 		return
@@ -498,25 +575,17 @@ func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 		return
 	}
 
-	// Verify availability
-	if newSlot.IsBooked {
+	if newSlot.Status != models.StatusAvailable {
 		tx.Rollback()
-		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "The requested new slot is already booked by someone else"})
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "The requested new slot is no longer available"})
 		return
 	}
-
-	// Ensure it's the same psychologist
-	//if oldSlot.PsychologistID != newSlot.PsychologistID {
-	//	tx.Rollback()
-	//	c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Cannot reschedule to a different psychologist using this endpoint"})
-	//	return
-	//}
 
 	// Free up the Old Slot
 	res1 := tx.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", oldSlot.ID, oldSlot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":             false,
+			"status":                models.StatusAvailable,
 			"student_id":            nil,
 			"booking_type":          "",
 			"questionnaire_answers": "",
@@ -533,7 +602,7 @@ func (h *BookingHandler) RescheduleAppointment(c *gin.Context) {
 	res2 := tx.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", newSlot.ID, newSlot.Version).
 		Updates(map[string]interface{}{
-			"is_booked":             true,
+			"status":                models.StatusBooked,
 			"student_id":            studentID,
 			"booking_type":          oldSlot.BookingType,
 			"questionnaire_answers": oldSlot.QuestionnaireAnswers,
