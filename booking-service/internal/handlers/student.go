@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pokonti/psychologist-backend/booking-service/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
@@ -478,6 +478,8 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		})
 		return
 	}
+
+	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_student")
 
 	go func() {
 		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{

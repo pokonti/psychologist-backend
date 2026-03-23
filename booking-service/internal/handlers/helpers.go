@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/pokonti/psychologist-backend/booking-service/clients"
+	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
@@ -84,4 +85,21 @@ func getWeekRange(date time.Time) (time.Time, time.Time) {
 	endOfWeek := startOfWeek.AddDate(0, 0, 7)
 
 	return startOfWeek, endOfWeek
+}
+
+func logBookingAction(slotID, psychID, studentID, action string) {
+	logEntry := models.BookingLog{
+		ID:             uuid.NewString(),
+		SlotID:         slotID,
+		PsychologistID: psychID,
+		StudentID:      studentID,
+		Action:         action,
+		Timestamp:      time.Now(),
+	}
+
+	go func() {
+		if err := config.DB.Create(&logEntry).Error; err != nil {
+			log.Printf("Failed to write booking log: %v", err)
+		}
+	}()
 }

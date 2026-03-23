@@ -147,6 +147,88 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me/mood": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student selects how they are feeling today. Updates the existing entry if already logged today.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "well-being"
+                ],
+                "summary": "Log daily mood",
+                "parameters": [
+                    {
+                        "description": "Mood selection",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.LogMoodInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/mood/graphic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns mood scores for the graph. Filter by 'last_week' or 'last_month'.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "well-being"
+                ],
+                "summary": "Get mood data for graphic",
+                "parameters": [
+                    {
+                        "enum": [
+                            "last_week",
+                            "last_month"
+                        ],
+                        "type": "string",
+                        "description": "Filter period (default: last_week)",
+                        "name": "filter",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MoodGraphicResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/psychologists": {
             "get": {
                 "security": [
@@ -189,6 +271,46 @@ const docTemplate = `{
                 "error": {
                     "type": "string",
                     "example": "Invalid start_date"
+                }
+            }
+        },
+        "models.LogMoodInput": {
+            "type": "object",
+            "required": [
+                "mood"
+            ],
+            "properties": {
+                "mood": {
+                    "type": "string",
+                    "enum": [
+                        "Amazing",
+                        "Nice",
+                        "Not bad",
+                        "Sad",
+                        "Anxiously",
+                        "Stressed"
+                    ]
+                }
+            }
+        },
+        "models.MoodGraphicResponse": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "\"2026-02-23\"",
+                    "type": "string"
+                },
+                "day_of_week": {
+                    "description": "\"Mon\", \"Tue\"",
+                    "type": "string"
+                },
+                "mood": {
+                    "description": "\"Amazing\"",
+                    "type": "string"
+                },
+                "score": {
+                    "description": "6",
+                    "type": "integer"
                 }
             }
         },
@@ -239,9 +361,6 @@ const docTemplate = `{
                 "gender": {
                     "type": "string"
                 },
-                "notification_channel": {
-                    "type": "string"
-                },
                 "phone": {
                     "type": "string"
                 },
@@ -287,10 +406,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "notification_channel": {
-                    "description": "\"email\", \"whatsapp\", \"none\"",
-                    "type": "string"
-                },
                 "password": {
                     "type": "string"
                 },
@@ -309,6 +424,9 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "description": "for psychologists",
+                    "type": "string"
+                },
+                "telegram_chat_id": {
                     "type": "string"
                 },
                 "updated_at": {

@@ -22,6 +22,35 @@ definitions:
     required:
     - notes
     type: object
+  models.AdminReviewResponse:
+    properties:
+      psychologist_id:
+        type: string
+      psychologist_name:
+        type: string
+      rating:
+        type: integer
+      review:
+        type: string
+      slot_id:
+        type: string
+      start_time:
+        type: string
+      student_id:
+        type: string
+      student_name:
+        type: string
+    type: object
+  models.AnonymousReviewResponse:
+    properties:
+      month_year:
+        description: e.g., "February 2026"
+        type: string
+      rating:
+        type: integer
+      review:
+        type: string
+    type: object
   models.BookSlotInput:
     properties:
       answers:
@@ -31,8 +60,11 @@ definitions:
         - online
         - offline
         type: string
+      phone_number:
+        type: string
     required:
     - booking_type
+    - phone_number
     type: object
   models.CalendarAvailabilityResponse:
     properties:
@@ -109,6 +141,8 @@ definitions:
         type: integer
       id:
         type: string
+      phone_number:
+        type: string
       psychologist_id:
         type: string
       questionnaire_answers:
@@ -121,6 +155,37 @@ definitions:
         type: string
       student_name:
         type: string
+    type: object
+  models.PsychologistStats:
+    properties:
+      average_rating:
+        type: number
+      cancellation_rate:
+        description: '% of bookings cancelled by students'
+        type: number
+      most_common_booking:
+        description: '"online" or "offline"'
+        type: string
+      sessions_this_month:
+        type: integer
+      total_sessions:
+        type: integer
+      upcoming_sessions:
+        type: integer
+    type: object
+  models.RateSessionInput:
+    properties:
+      rating:
+        description: Must be 1-5
+        maximum: 5
+        minimum: 1
+        type: integer
+      review:
+        description: Optional text review
+        maxLength: 500
+        type: string
+    required:
+    - rating
     type: object
   models.RecommendationInput:
     properties:
@@ -280,12 +345,60 @@ paths:
       summary: 'Admin: Get system statistics'
       tags:
       - admin
+  /admin/reviews:
+    get:
+      description: Admin views unmasked ratings and reviews across the platform, including
+        student and psychologist identities.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AdminReviewResponse'
+            type: array
+        "403":
+          description: Admin access required
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: View all reviews'
+      tags:
+      - admin
+  /psychologist/reviews:
+    get:
+      description: Psychologist views their ratings and written reviews. Student identities
+        and exact dates are anonymized to protect privacy.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AnonymousReviewResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get anonymous reviews
+      tags:
+      - psychologist-slots
   /psychologist/slots:
     get:
       description: Returns all slots for the logged-in psychologist, including student
         details for booked slots.
       parameters:
-      - description: Filter by date (YYYY-MM-DD)
+      - description: 'Filter period: ''day'', ''week'', ''month'' (default: day)'
+        in: query
+        name: period
+        type: string
+      - description: 'Start date for filter (YYYY-MM-DD), default: today'
         in: query
         name: date
         type: string
@@ -489,6 +602,21 @@ paths:
       security:
       - BearerAuth: []
       summary: Add recommendations for a student
+      tags:
+      - psychologist-slots
+  /psychologist/statistics:
+    get:
+      description: 'Returns meaningful KPIs: Load, Ratings, Trends, and efficiency.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PsychologistStats'
+      security:
+      - BearerAuth: []
+      summary: Get psychologist dashboard statistics
       tags:
       - psychologist-slots
   /psychologist/students/{student_id}/history:
@@ -750,6 +878,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Confirm a booked appointment
+      tags:
+      - student-booking
+  /student/slots/{id}/rate:
+    post:
+      consumes:
+      - application/json
+      description: Student leaves a 1-5 star rating and an optional review for a completed
+        appointment.
+      parameters:
+      - description: Slot ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rating and Review
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RateSessionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid rating (must be 1-5) or session not finished
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Not authorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Session already rated
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rate a completed session
       tags:
       - student-booking
   /student/slots/{id}/reschedule:

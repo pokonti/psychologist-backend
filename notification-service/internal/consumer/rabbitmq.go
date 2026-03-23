@@ -7,6 +7,7 @@ import (
 
 	"github.com/pokonti/psychologist-backend/notification-service/internal/email"
 	"github.com/pokonti/psychologist-backend/notification-service/internal/models"
+	"github.com/pokonti/psychologist-backend/notification-service/internal/telegram"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -119,6 +120,27 @@ func processMessage(body []byte) {
 			<br>
 			<p>Take care,<br>The KBTU Care Team</p>
 		`, msg.Data["psychologist_name"], msg.Data["date"])
+	case "account_blocked":
+		subject = "Your Account Access Status ⚠️"
+		htmlBody = fmt.Sprintf(`
+			<h2>Account Notice</h2>
+			<p>Your KBTU Care account has been restricted.</p>
+			<p><b>Reason:</b> %s</p>
+			<p>If you believe this is a mistake, please contact the administration office.</p>
+		`, msg.Data["reason"])
+	case "session_reminder":
+		subject = "Reminder: Upcoming Appointment ⏰"
+		htmlBody = fmt.Sprintf(`
+			<h2>Appointment Reminder</h2>
+			<p>You have a session with <b>%s</b>  <b>%s</b> at <b>%s</b>.</p>
+			<p>Please ensure you are on time!</p>
+		`, msg.Data["psychologist_name"], msg.Data["subject"], msg.Data["datetime"])
+
+		tgChatID := msg.Data["telegram_chat_id"]
+		if tgChatID != "" {
+			tgText := fmt.Sprintf("⏰ <b>Reminder!</b>\nYou have an appointment with %s tomorrow at %s.", msg.Data["psychologist_name"], msg.Data["datetime"])
+			telegram.SendMessage(tgChatID, tgText)
+		}
 
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)

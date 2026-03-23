@@ -25,6 +25,8 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			psych.GET("/students/:student_id/history", h.GetStudentHistory)
 			psych.POST("/slots/:id/cancel", h.CancelBookingByPsychologist)
 			psych.PUT("/slots/:id/recommendations", h.AddRecommendation)
+			psych.GET("/reviews", h.GetMyReviews)
+			psych.GET("/statistics", h.GetPsychologistStats)
 		}
 
 		// Student routes
@@ -48,6 +50,7 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 		admin.GET("/bookings", h.GetAllBookings)
 		admin.POST("/bookings/:id/cancel", h.ForceCancelBooking)
 		admin.GET("/admin/dashboard", h.GetDashboard)
+		admin.GET("/reviews", h.GetAllReviews)
 	}
 
 	// Swagger endpoint

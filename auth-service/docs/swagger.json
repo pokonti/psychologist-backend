@@ -80,7 +80,7 @@
                         "required": true
                     },
                     {
-                        "description": "Block Status",
+                        "description": "Block/Unblock status and reason",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -337,6 +337,9 @@
             "properties": {
                 "blocked": {
                     "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
                 }
             }
         },

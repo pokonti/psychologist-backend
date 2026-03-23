@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pokonti/psychologist-backend/booking-service/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	_ "github.com/pokonti/psychologist-backend/booking-service/docs"
+	clients2 "github.com/pokonti/psychologist-backend/booking-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/handlers"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/worker"
 	"github.com/pokonti/psychologist-backend/booking-service/routes"
@@ -32,13 +32,13 @@ func main() {
 	worker.StartReservationCleanup()
 
 	// Init gRPC Client
-	userClient, conn, err := clients.NewUserProfileClient()
+	userClient, conn, err := clients2.NewUserProfileClient()
 	if err != nil {
 		log.Fatalf("Failed to connect to user service: %v", err)
 	}
 	defer conn.Close()
 
-	rabbitMQ := clients.NewRabbitMQClient()
+	rabbitMQ := clients2.NewRabbitMQClient()
 	// Init Handler
 	h := &handlers.BookingHandler{
 		UserClient: userClient,
@@ -47,7 +47,8 @@ func main() {
 
 	r := gin.Default()
 
-	// Setup routes
+	worker.StartReminderWorker(userClient, rabbitMQ)
+
 	routes.SetupRoutes(r, h)
 
 	log.Println("Booking Service running on port 8084")

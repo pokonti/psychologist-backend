@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/pokonti/psychologist-backend/booking-service/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 	"gorm.io/gorm/clause"
@@ -129,7 +129,8 @@ func CreateSlot(c *gin.Context) {
 // @Tags         psychologist-slots
 // @Produce      json
 // @Security     BearerAuth
-// @Param        date   query     string  false  "Filter by date (YYYY-MM-DD)"
+// @Param        period query string false "Filter period: 'day', 'week', 'month' (default: day)"
+// @Param        date   query string false "Start date for filter (YYYY-MM-DD), default: today"
 // @Success      200    {array}   models.PsychologistScheduleResponse
 // @Failure      401 {object} models.ErrorResponse
 // @Router       /psychologist/slots [get]
@@ -143,19 +144,33 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 	}
 
 	dateStr := c.Query("date")
+	period := c.DefaultQuery("period", "day") // day, week, or month
 
-	query := config.DB.Where("psychologist_id = ?", psychID).Order("start_time asc")
+	// Calculate Start and End range
+	var startTime time.Time
+	var endTime time.Time
 
 	if dateStr != "" {
-		date, err := parseDate(dateStr)
-		if err == nil {
-			nextDay := date.Add(24 * time.Hour)
-			query = query.Where("start_time >= ? AND start_time < ?", date, nextDay)
-		}
+		startTime, _ = parseDate(dateStr)
+	} else {
+		startTime = time.Now().Truncate(24 * time.Hour) // Default to today
+	}
+
+	switch period {
+	case "week":
+		endTime = startTime.AddDate(0, 0, 7) // 7 days from start
+	case "month":
+		endTime = startTime.AddDate(0, 1, 0) // 1 month from start
+	default: // "day"
+		endTime = startTime.AddDate(0, 0, 1) // 1 day from start
 	}
 
 	var slots []models.Slot
-	if err := query.Find(&slots).Error; err != nil {
+	if err := config.DB.
+		Where("psychologist_id = ?", psychID).
+		Where("start_time >= ? AND start_time < ?", startTime, endTime).
+		Order("start_time asc").
+		Find(&slots).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
 		return
 	}
@@ -427,6 +442,8 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 		return
 	}
 
+	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_psychologist")
+
 	go func() {
 		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
 			Ids: []string{studentID, psychID},
@@ -535,4 +552,120 @@ func (h *BookingHandler) AddRecommendation(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{Message: "Recommendations shared with student"})
+}
+
+// GetMyReviews godoc
+// @Summary      Get anonymous reviews
+// @Description  Psychologist views their ratings and written reviews. Student identities and exact dates are anonymized to protect privacy.
+// @Tags         psychologist-slots
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {array} models.AnonymousReviewResponse
+// @Router       /psychologist/reviews [get]
+func (h *BookingHandler) GetMyReviews(c *gin.Context) {
+	psychID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can access this"})
+		return
+	}
+
+	var slots []models.Slot
+	if err := config.DB.
+		Where("psychologist_id = ? AND rating > 0", psychID).
+		Order("start_time desc").
+		Find(&slots).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
+		return
+	}
+
+	var reviews []models.AnonymousReviewResponse
+	for _, s := range slots {
+		reviews = append(reviews, models.AnonymousReviewResponse{
+			Rating:    s.Rating,
+			Review:    s.Review,
+			MonthYear: s.StartTime.Format("January 2006"),
+		})
+	}
+
+	if len(reviews) == 0 {
+		c.JSON(http.StatusOK, []models.AnonymousReviewResponse{})
+		return
+	}
+
+	c.JSON(http.StatusOK, reviews)
+}
+
+// GetPsychologistStats godoc
+// @Summary      Get psychologist dashboard statistics
+// @Description  Returns meaningful KPIs: Load, Ratings, Trends, and efficiency.
+// @Tags         psychologist-slots
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} models.PsychologistStats
+// @Router       /psychologist/statistics [get]
+func (h *BookingHandler) GetPsychologistStats(c *gin.Context) {
+	psychID := c.GetHeader("X-User-ID")
+	role := c.GetHeader("X-User-Role")
+
+	if role != "psychologist" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can access this"})
+		return
+	}
+	var stats models.PsychologistStats
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	// 1. Total Sessions (Completed)
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND start_time < ?", psychID, models.StatusBooked, now).
+		Count(&stats.TotalSessions)
+
+	// 2. Upcoming Sessions
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND start_time > ?", psychID, models.StatusBooked, now).
+		Count(&stats.UpcomingSessions)
+
+	// 3. Average Rating
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND rating > 0", psychID).
+		Select("AVG(rating)").
+		Scan(&stats.AverageRating)
+
+	// 4. Cancellation Rate (Cancellations / Total Booked)
+	var totalBooked int64
+	var totalCancelled int64
+
+	// Count all 'booked' actions
+	config.DB.Model(&models.BookingLog{}).
+		Where("psychologist_id = ? AND action = ?", psychID, "booked").
+		Count(&totalBooked)
+
+	// Count all 'canceled' actions
+	config.DB.Model(&models.BookingLog{}).
+		Where("psychologist_id = ? AND action IN ?", psychID, []string{"canceled_by_student", "canceled_by_psychologist"}).
+		Count(&totalCancelled)
+
+	if totalBooked > 0 {
+		stats.CancellationRate = (float64(totalCancelled) / float64(totalBooked)) * 100
+	}
+
+	// 5. Sessions this month
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND start_time >= ?", psychID, models.StatusBooked, startOfMonth).
+		Count(&stats.SessionsThisMonth)
+
+	// 6. Most Popular Format
+	var topFormat string
+	config.DB.Model(&models.Slot{}).
+		Select("booking_type").
+		Where("psychologist_id = ? AND status = ?", psychID, models.StatusBooked).
+		Group("booking_type").
+		Order("count(*) desc").
+		Limit(1).
+		Scan(&topFormat)
+	stats.MostCommonBooking = topFormat
+
+	c.JSON(http.StatusOK, stats)
 }

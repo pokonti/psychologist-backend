@@ -23,6 +23,7 @@ const (
 	UserProfileService_GetUserProfileByID_FullMethodName   = "/userprofile.UserProfileService/GetUserProfileByID"
 	UserProfileService_GetBatchUserProfiles_FullMethodName = "/userprofile.UserProfileService/GetBatchUserProfiles"
 	UserProfileService_UpdateUserPhone_FullMethodName      = "/userprofile.UserProfileService/UpdateUserPhone"
+	UserProfileService_UpdateUserTelegram_FullMethodName   = "/userprofile.UserProfileService/UpdateUserTelegram"
 )
 
 // UserProfileServiceClient is the client API for UserProfileService service.
@@ -33,6 +34,7 @@ type UserProfileServiceClient interface {
 	GetUserProfileByID(ctx context.Context, in *GetUserProfileByIDRequest, opts ...grpc.CallOption) (*GetUserProfileByIDResponse, error)
 	GetBatchUserProfiles(ctx context.Context, in *GetBatchUserProfilesRequest, opts ...grpc.CallOption) (*GetBatchUserProfilesResponse, error)
 	UpdateUserPhone(ctx context.Context, in *UpdateUserPhoneRequest, opts ...grpc.CallOption) (*UpdateUserPhoneResponse, error)
+	UpdateUserTelegram(ctx context.Context, in *UpdateUserTelegramRequest, opts ...grpc.CallOption) (*UpdateUserTelegramResponse, error)
 }
 
 type userProfileServiceClient struct {
@@ -83,6 +85,16 @@ func (c *userProfileServiceClient) UpdateUserPhone(ctx context.Context, in *Upda
 	return out, nil
 }
 
+func (c *userProfileServiceClient) UpdateUserTelegram(ctx context.Context, in *UpdateUserTelegramRequest, opts ...grpc.CallOption) (*UpdateUserTelegramResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserTelegramResponse)
+	err := c.cc.Invoke(ctx, UserProfileService_UpdateUserTelegram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserProfileServiceServer is the server API for UserProfileService service.
 // All implementations must embed UnimplementedUserProfileServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type UserProfileServiceServer interface {
 	GetUserProfileByID(context.Context, *GetUserProfileByIDRequest) (*GetUserProfileByIDResponse, error)
 	GetBatchUserProfiles(context.Context, *GetBatchUserProfilesRequest) (*GetBatchUserProfilesResponse, error)
 	UpdateUserPhone(context.Context, *UpdateUserPhoneRequest) (*UpdateUserPhoneResponse, error)
+	UpdateUserTelegram(context.Context, *UpdateUserTelegramRequest) (*UpdateUserTelegramResponse, error)
 	mustEmbedUnimplementedUserProfileServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedUserProfileServiceServer) GetBatchUserProfiles(context.Contex
 }
 func (UnimplementedUserProfileServiceServer) UpdateUserPhone(context.Context, *UpdateUserPhoneRequest) (*UpdateUserPhoneResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUserPhone not implemented")
+}
+func (UnimplementedUserProfileServiceServer) UpdateUserTelegram(context.Context, *UpdateUserTelegramRequest) (*UpdateUserTelegramResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserTelegram not implemented")
 }
 func (UnimplementedUserProfileServiceServer) mustEmbedUnimplementedUserProfileServiceServer() {}
 func (UnimplementedUserProfileServiceServer) testEmbeddedByValue()                            {}
@@ -206,6 +222,24 @@ func _UserProfileService_UpdateUserPhone_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserProfileService_UpdateUserTelegram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserTelegramRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserProfileServiceServer).UpdateUserTelegram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserProfileService_UpdateUserTelegram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserProfileServiceServer).UpdateUserTelegram(ctx, req.(*UpdateUserTelegramRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserProfileService_ServiceDesc is the grpc.ServiceDesc for UserProfileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var UserProfileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUserPhone",
 			Handler:    _UserProfileService_UpdateUserPhone_Handler,
+		},
+		{
+			MethodName: "UpdateUserTelegram",
+			Handler:    _UserProfileService_UpdateUserTelegram_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

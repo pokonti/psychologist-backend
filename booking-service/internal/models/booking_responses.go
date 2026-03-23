@@ -61,10 +61,37 @@ type StudentHistoryResponse struct {
 	QuestionnaireAnswers string    `json:"questionnaire_answers"`
 	PsychologistNotes    string    `json:"psychologist_notes"`
 }
+
 type WaitlistResponse struct {
 	ID               string    `json:"id"`
 	PsychologistID   string    `json:"psychologist_id"`
 	PsychologistName string    `json:"psychologist_name"`
 	Date             string    `json:"date"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+type AnonymousReviewResponse struct {
+	Rating    int    `json:"rating"`
+	Review    string `json:"review"`
+	MonthYear string `json:"month_year"` // e.g., "February 2026"
+}
+
+type AdminReviewResponse struct {
+	SlotID           string    `json:"slot_id"`
+	PsychologistID   string    `json:"psychologist_id"`
+	PsychologistName string    `json:"psychologist_name"`
+	StudentID        string    `json:"student_id"`
+	StudentName      string    `json:"student_name"`
+	StartTime        time.Time `json:"start_time"`
+	Rating           int       `json:"rating"`
+	Review           string    `json:"review"`
+}
+
+type PsychologistStats struct {
+	TotalSessions     int64   `json:"total_sessions"`
+	UpcomingSessions  int64   `json:"upcoming_sessions"`
+	AverageRating     float64 `json:"average_rating"`
+	CancellationRate  float64 `json:"cancellation_rate"`   // % of bookings cancelled by students
+	MostCommonBooking string  `json:"most_common_booking"` // "online" or "offline"
+	SessionsThisMonth int64   `json:"sessions_this_month"`
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -141,4 +142,94 @@ func (h *BookingHandler) GetDashboard(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// GetAllReviews godoc
+// @Summary      Admin: View all reviews
+// @Description  Admin views unmasked ratings and reviews across the platform, including student and psychologist identities.
+// @Tags         admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {array} models.AdminReviewResponse
+// @Failure      403 {object} models.ErrorResponse "Admin access required"
+// @Failure      500 {object} models.ErrorResponse "Database error"
+// @Router       /admin/reviews [get]
+func (h *BookingHandler) GetAllReviews(c *gin.Context) {
+	role := c.GetHeader("X-User-Role")
+
+	if role != "admin" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Admin access required"})
+		return
+	}
+
+	var slots []models.Slot
+	if err := config.DB.
+		Where("rating > 0").
+		Order("start_time desc").
+		Find(&slots).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
+		return
+	}
+
+	if len(slots) == 0 {
+		c.JSON(http.StatusOK, []models.AdminReviewResponse{})
+		return
+	}
+
+	var userIDs []string
+	uniqueUsers := make(map[string]bool)
+
+	for _, s := range slots {
+		if !uniqueUsers[s.PsychologistID] {
+			uniqueUsers[s.PsychologistID] = true
+			userIDs = append(userIDs, s.PsychologistID)
+		}
+		if s.StudentID != nil && !uniqueUsers[*s.StudentID] {
+			uniqueUsers[*s.StudentID] = true
+			userIDs = append(userIDs, *s.StudentID)
+		}
+	}
+
+	userMap := make(map[string]string)
+	grpcResp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{
+		Ids: userIDs,
+	})
+
+	if err == nil {
+		for _, p := range grpcResp.Profiles {
+			userMap[p.Id] = p.FullName
+		}
+	} else {
+		log.Printf("Failed to fetch user profiles for admin reviews: %v", err)
+	}
+
+	var response []models.AdminReviewResponse
+	for _, s := range slots {
+		psychName := "Unknown Psychologist"
+		if name, ok := userMap[s.PsychologistID]; ok {
+			psychName = name
+		}
+
+		studentName := "Unknown Student"
+		studentID := ""
+		if s.StudentID != nil {
+			studentID = *s.StudentID
+			if name, ok := userMap[*s.StudentID]; ok {
+				studentName = name
+			}
+		}
+
+		response = append(response, models.AdminReviewResponse{
+			SlotID:           s.ID,
+			PsychologistID:   s.PsychologistID,
+			PsychologistName: psychName,
+			StudentID:        studentID,
+			StudentName:      studentName,
+			StartTime:        s.StartTime,
+			Rating:           s.Rating,
+			Review:           s.Review,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }

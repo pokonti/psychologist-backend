@@ -55,6 +55,7 @@ func (s *UserProfileServer) GetUserProfileByID(ctx context.Context, req *userpro
 		Specialization: p.Specialization,
 		Email:          p.Email,
 		Phone:          p.Phone,
+		TelegramChatId: p.TelegramChatID,
 	}, nil
 }
 
@@ -73,9 +74,10 @@ func (s *UserProfileServer) GetBatchUserProfiles(ctx context.Context, req *userp
 	var profiles []*userprofile.BasicUserProfile
 	for _, u := range users {
 		profiles = append(profiles, &userprofile.BasicUserProfile{
-			Id:       u.ID,
-			FullName: u.FullName,
-			Email:    u.Email,
+			Id:             u.ID,
+			FullName:       u.FullName,
+			Email:          u.Email,
+			TelegramChatId: u.TelegramChatID,
 		})
 	}
 
@@ -94,4 +96,18 @@ func (s *UserProfileServer) UpdateUserPhone(ctx context.Context, req *userprofil
 	}
 
 	return &userprofile.UpdateUserPhoneResponse{Success: true}, nil
+}
+
+func (s *UserProfileServer) UpdateUserTelegram(ctx context.Context, req *userprofile.UpdateUserTelegramRequest) (*userprofile.UpdateUserTelegramResponse, error) {
+	var profile models.UserProfile
+	if err, _ := s.Repo.GetByID(ctx, req.Id); err != nil {
+		return nil, status.Error(codes.NotFound, "profile not found")
+	}
+
+	profile.TelegramChatID = req.TelegramChatId
+	if err := s.Repo.Update(ctx, &profile); err != nil {
+		return nil, status.Error(codes.Internal, "failed to update telegram chat id")
+	}
+
+	return &userprofile.UpdateUserTelegramResponse{Success: true}, nil
 }

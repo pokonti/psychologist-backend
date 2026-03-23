@@ -12,6 +12,7 @@ import (
 	"github.com/pokonti/psychologist-backend/user-service/internal/handlers"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
 	"github.com/pokonti/psychologist-backend/user-service/internal/repository"
+	"github.com/pokonti/psychologist-backend/user-service/internal/worker"
 	"github.com/pokonti/psychologist-backend/user-service/routes"
 	"google.golang.org/grpc"
 
@@ -39,6 +40,7 @@ func main() {
 	defer rabbitCh.Close()
 
 	go consumer.StartListening(rabbitCh, rabbitQueue)
+	go worker.StartTelegramBot()
 
 	profileRepo := repository.NewGormProfileRepository(db)
 

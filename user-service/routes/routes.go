@@ -14,6 +14,8 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 		api.GET("/me", profileHandler.GetMyProfile)
 		api.PUT("/me", profileHandler.UpdateMyProfile)
 		api.GET("/psychologists", profileHandler.GetPublicPsychologists)
+		api.POST("/me/mood", profileHandler.LogMood)
+		api.GET("/me/mood/graphic", profileHandler.GetMoodGraphic)
 	}
 	admin := api.Group("/admin")
 	{

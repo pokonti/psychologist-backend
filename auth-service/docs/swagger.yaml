@@ -25,6 +25,8 @@ definitions:
     properties:
       blocked:
         type: boolean
+      reason:
+        type: string
     type: object
   models.ErrorResponse:
     properties:
@@ -130,7 +132,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: Block Status
+      - description: Block/Unblock status and reason
         in: body
         name: request
         required: true

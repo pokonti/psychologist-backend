@@ -3,9 +3,13 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/pokonti/psychologist-backend/user-service/config"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/user-service/internal/repository"
@@ -116,9 +120,6 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	if req.Phone != nil {
 		profile.Phone = *req.Phone
 	}
-	if req.NotificationChannel != nil {
-		profile.NotificationChannel = *req.NotificationChannel
-	}
 
 	if err := h.Repo.Update(c.Request.Context(), profile); err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
@@ -169,4 +170,110 @@ func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, publicProfiles)
+}
+
+// LogMood godoc
+// @Summary      Log daily mood
+// @Description  Student selects how they are feeling today. Updates the existing entry if already logged today.
+// @Tags         well-being
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body models.LogMoodInput true "Mood selection"
+// @Success      200 {object} map[string]string
+// @Router       /users/me/mood [post]
+func (h *ProfileHandler) LogMood(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+
+	var input models.LogMoodInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	today := time.Now().Format("2006-01-02")
+	score := getMoodScore(input.Mood)
+
+	moodLog := models.MoodLog{
+		ID:     uuid.NewString(),
+		UserID: userID,
+		Date:   today,
+		Mood:   input.Mood,
+		Score:  score,
+	}
+
+	err := config.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "date"}},
+		DoUpdates: clause.AssignmentColumns([]string{"mood", "score", "updated_at"}),
+	}).Create(&moodLog).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to log mood"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.MessageResponse{
+		Message: "Mood logged successfully!",
+	})
+}
+
+// GetMoodGraphic godoc
+// @Summary      Get mood data for graphic
+// @Description  Returns mood scores for the graph. Filter by 'last_week' or 'last_month'.
+// @Tags         well-being
+// @Produce      json
+// @Security     BearerAuth
+// @Param        filter query string false "Filter period (default: last_week)" Enums(last_week, last_month)
+// @Success      200 {array} models.MoodGraphicResponse
+// @Router       /users/me/mood/graphic [get]
+func (h *ProfileHandler) GetMoodGraphic(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+	filter := c.DefaultQuery("filter", "last_week")
+
+	now := time.Now()
+	var startDate time.Time
+
+	if filter == "last_month" {
+		startDate = now.AddDate(0, -1, 0)
+	} else {
+		startDate = now.AddDate(0, 0, -6)
+	}
+
+	var logs []models.MoodLog
+	config.DB.
+		Where("user_id = ? AND date >= ?", userID, startDate.Format("2006-01-02")).
+		Order("date asc").
+		Find(&logs)
+
+	var response []models.MoodGraphicResponse
+	for _, log := range logs {
+		parsedDate, _ := time.Parse("2006-01-02", log.Date)
+		response = append(response, models.MoodGraphicResponse{
+			Date:      log.Date,
+			DayOfWeek: parsedDate.Format("Mon"), // Returns "Mon", "Tue", etc.
+			Mood:      log.Mood,
+			Score:     log.Score,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func getMoodScore(mood string) int {
+	switch mood {
+	case "Amazing":
+		return 6
+	case "Nice":
+		return 5
+	case "Not bad":
+		return 4
+	case "Sad":
+		return 3
+	case "Anxiously":
+		return 2
+	case "Stressed":
+		return 1
+	default:
+		return 0
+	}
 }

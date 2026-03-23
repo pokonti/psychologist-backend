@@ -86,7 +86,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Block Status",
+                        "description": "Block/Unblock status and reason",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -343,6 +343,9 @@ const docTemplate = `{
             "properties": {
                 "blocked": {
                     "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
                 }
             }
         },

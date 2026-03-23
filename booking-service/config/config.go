@@ -34,7 +34,7 @@ func ConnectDB() {
 	}
 
 	log.Println("Booking DB Connected. Running Migrations")
-	err = DB.AutoMigrate(&models.Slot{}, &models.WaitlistEntry{})
+	err = DB.AutoMigrate(&models.Slot{}, &models.WaitlistEntry{}, &models.BookingLog{})
 	if err != nil {
 		log.Fatal("Failed to migrate database: ", err)
 	}

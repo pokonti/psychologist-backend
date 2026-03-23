@@ -19,6 +19,8 @@ func SetupRoutes(r *gin.Engine) {
 	protected.GET("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.PUT("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.GET("/users/psychologists", proxy.Forward("http://user-service:8081"))
+	protected.POST("/users/me/mood", proxy.Forward("http://user-service:8081"))
+	protected.GET("/users/me/mood/graphic", proxy.Forward("http://user-service:8081"))
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))
 	protected.GET("/slots/calendar", proxy.Forward("http://booking-service:8084"))
 	protected.POST("/auth/logout", proxy.Forward("http://auth-service:8083"))
@@ -33,6 +35,8 @@ func SetupRoutes(r *gin.Engine) {
 		psychOnly.GET("/students/:student_id/history", proxy.Forward("http://booking-service:8084"))
 		psychOnly.POST("/slots/:id/cancel", proxy.Forward("http://booking-service:8084"))
 		psychOnly.PUT("/slots/:id/recommendations", proxy.Forward("http://booking-service:8084"))
+		psychOnly.GET("/reviews", proxy.Forward("http://booking-service:8084"))
+		psychOnly.GET("/statistics", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Student
@@ -47,6 +51,7 @@ func SetupRoutes(r *gin.Engine) {
 		studentOnly.GET("/waitlist", proxy.Forward("http://booking-service:8084"))
 		studentOnly.DELETE("/waitlist/:id", proxy.Forward("http://booking-service:8084"))
 		studentOnly.POST("/slots/:id/rate", proxy.Forward("http://booking-service:8084"))
+
 	}
 
 	adminOnly := protected.Group("/admin", middleware.RequireRoles("admin"))
@@ -58,6 +63,7 @@ func SetupRoutes(r *gin.Engine) {
 		adminOnly.PATCH("/users/:id/block", proxy.Forward("http://auth-service:8083"))
 		adminOnly.GET("/users", proxy.Forward("http://user-service:8081"))
 		adminOnly.GET("/psychologists", proxy.Forward("http://user-service:8081"))
+		adminOnly.GET("/reviews", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Proxy Swagger UIs

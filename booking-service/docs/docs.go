@@ -120,6 +120,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin views unmasked ratings and reviews across the platform, including student and psychologist identities.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin: View all reviews",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AdminReviewResponse"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Psychologist views their ratings and written reviews. Student identities and exact dates are anonymized to protect privacy.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Get anonymous reviews",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AnonymousReviewResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/psychologist/slots": {
             "get": {
                 "security": [
@@ -138,7 +206,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by date (YYYY-MM-DD)",
+                        "description": "Filter period: 'day', 'week', 'month' (default: day)",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date for filter (YYYY-MM-DD), default: today",
                         "name": "date",
                         "in": "query"
                     }
@@ -438,6 +512,31 @@ const docTemplate = `{
                         "description": "Database or internal server error",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/psychologist/statistics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns meaningful KPIs: Load, Ratings, Trends, and efficiency.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Get psychologist dashboard statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PsychologistStats"
                         }
                     }
                 }
@@ -840,6 +939,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/student/slots/{id}/rate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Student leaves a 1-5 star rating and an optional review for a completed appointment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "student-booking"
+                ],
+                "summary": "Rate a completed session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rating and Review",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RateSessionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid rating (must be 1-5) or session not finished",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Slot not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Session already rated",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/student/slots/{id}/reschedule": {
             "post": {
                 "security": [
@@ -1133,10 +1302,55 @@ const docTemplate = `{
                 }
             }
         },
+        "models.AdminReviewResponse": {
+            "type": "object",
+            "properties": {
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "review": {
+                    "type": "string"
+                },
+                "slot_id": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "student_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AnonymousReviewResponse": {
+            "type": "object",
+            "properties": {
+                "month_year": {
+                    "description": "e.g., \"February 2026\"",
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "review": {
+                    "type": "string"
+                }
+            }
+        },
         "models.BookSlotInput": {
             "type": "object",
             "required": [
-                "booking_type"
+                "booking_type",
+                "phone_number"
             ],
             "properties": {
                 "answers": {
@@ -1148,6 +1362,9 @@ const docTemplate = `{
                         "online",
                         "offline"
                     ]
+                },
+                "phone_number": {
+                    "type": "string"
                 }
             }
         },
@@ -1260,6 +1477,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "phone_number": {
+                    "type": "string"
+                },
                 "psychologist_id": {
                     "type": "string"
                 },
@@ -1277,6 +1497,50 @@ const docTemplate = `{
                 },
                 "student_name": {
                     "type": "string"
+                }
+            }
+        },
+        "models.PsychologistStats": {
+            "type": "object",
+            "properties": {
+                "average_rating": {
+                    "type": "number"
+                },
+                "cancellation_rate": {
+                    "description": "% of bookings cancelled by students",
+                    "type": "number"
+                },
+                "most_common_booking": {
+                    "description": "\"online\" or \"offline\"",
+                    "type": "string"
+                },
+                "sessions_this_month": {
+                    "type": "integer"
+                },
+                "total_sessions": {
+                    "type": "integer"
+                },
+                "upcoming_sessions": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RateSessionInput": {
+            "type": "object",
+            "required": [
+                "rating"
+            ],
+            "properties": {
+                "rating": {
+                    "description": "Must be 1-5",
+                    "type": "integer",
+                    "maximum": 5,
+                    "minimum": 1
+                },
+                "review": {
+                    "description": "Optional text review",
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },

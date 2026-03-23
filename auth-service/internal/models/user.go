@@ -12,6 +12,7 @@ type User struct {
 	CodeExpiresAt    time.Time `json:"-"`
 	IsVerified       bool      `gorm:"default:false" json:"is_verified"`
 	IsBlocked        bool      `gorm:"default:false" json:"is_blocked"`
+	BlockReason      string    `gorm:"type:text" json:"block_reason,omitempty"`
 
 	RefreshToken string `gorm:"index" json:"-"`
 

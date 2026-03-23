@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/auth-service/config"
+	"github.com/pokonti/psychologist-backend/auth-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/auth-service/internal/models"
 	"github.com/pokonti/psychologist-backend/auth-service/internal/utils"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
@@ -20,7 +21,8 @@ type AdminAddUserInput struct {
 }
 
 type BlockUserInput struct {
-	Blocked bool `json:"blocked"`
+	Blocked bool   `json:"blocked"`
+	Reason  string `json:"reason"`
 }
 
 // AdminAddUser godoc
@@ -84,7 +86,7 @@ func (ac *AuthController) AdminAddUser(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path string true "User ID"
-// @Param        request body BlockUserInput true "Block Status"
+// @Param        request body BlockUserInput true "Block/Unblock status and reason"
 // @Success      200 {object} map[string]string
 // @Router       /admin/users/{id}/block [patch]
 func (ac *AuthController) AdminBlockUser(c *gin.Context) {
@@ -100,7 +102,12 @@ func (ac *AuthController) AdminBlockUser(c *gin.Context) {
 		return
 	}
 
-	res := config.DB.Model(&models.User{}).Where("id = ?", userID).Update("is_blocked", input.Blocked)
+	res := config.DB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"is_blocked":   input.Blocked,
+			"block_reason": input.Reason,
+		})
 	if res.Error != nil || res.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "User not found"})
 		return
@@ -109,6 +116,18 @@ func (ac *AuthController) AdminBlockUser(c *gin.Context) {
 	status := "unblocked"
 	if input.Blocked {
 		status = "blocked"
+	}
+	resp, _ := ac.UserClient.GetUserProfileByID(c.Request.Context(), &userprofile.GetUserProfileByIDRequest{Id: userID})
+
+	if input.Blocked && resp != nil && resp.Email != "" {
+		msg := clients.NotificationMessage{
+			Type:    "account_blocked",
+			ToEmail: resp.Email,
+			Data: map[string]string{
+				"reason": input.Reason,
+			},
+		}
+		ac.RabbitMQ.PublishNotification(msg)
 	}
 	c.JSON(http.StatusOK, models.MessageResponse{Message: fmt.Sprintf("User successfully %s", status)})
 }
