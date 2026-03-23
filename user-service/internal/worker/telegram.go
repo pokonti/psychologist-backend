@@ -43,13 +43,25 @@ func StartTelegramBot() {
 
 			if command == "start" {
 				chatID := update.Message.Chat.ID
-				studentID := strings.TrimSpace(args)
+				chatIDStr := fmt.Sprintf("%d", chatID)
 
-				if studentID == "" {
-					reply := tgbotapi.NewMessage(chatID, "Please provide your User ID. Format: /start <your-uuid>")
+				var existingProfile models.UserProfile
+				err := config.DB.First(&existingProfile, "telegram_chat_id = ?", chatIDStr).Error
+
+				if err == nil {
+					reply := tgbotapi.NewMessage(chatID, fmt.Sprintf("You are already linked to KBTU Care, %s!", existingProfile.FullName))
 					bot.Send(reply)
 					continue
 				}
+
+				// If NOT linked, check if they provided a UUID
+				if args == "" {
+					reply := tgbotapi.NewMessage(chatID, "Welcome to KBTU Care! Please open KBTU Care at http:... and click the button!")
+					bot.Send(reply)
+					continue
+				}
+
+				studentID := strings.TrimSpace(args)
 
 				var profile models.UserProfile
 				if err := config.DB.First(&profile, "id = ?", studentID).Error; err != nil {
@@ -59,7 +71,7 @@ func StartTelegramBot() {
 				}
 
 				// Update their Telegram Chat ID
-				chatIDStr := fmt.Sprintf("%d", chatID) // Convert int64 to string
+				chatIDStr = fmt.Sprintf("%d", chatID) // Convert int64 to string
 				profile.TelegramChatID = chatIDStr
 
 				if err := config.DB.Save(&profile).Error; err != nil {
