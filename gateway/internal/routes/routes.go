@@ -29,6 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))
 	protected.GET("/slots/calendar", proxy.Forward("http://booking-service:8084"))
 	protected.POST("/auth/logout", proxy.Forward("http://auth-service:8083"))
+	protected.POST("/users/me/avatar-url", proxy.Forward("http://user-service:8081"))
 
 	// Psychologist
 	psychOnly := protected.Group("/psychologist", middleware.RequireRoles("psychologist", "admin"))

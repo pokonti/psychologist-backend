@@ -147,6 +147,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me/avatar-url": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a presigned URL. The frontend must then perform a PUT request with the raw file bytes to this URL.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Get a secure URL to upload an avatar",
+                "parameters": [
+                    {
+                        "description": "File info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UploadResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/me/mood": {
             "post": {
                 "security": [
@@ -365,6 +404,36 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "specialization": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UploadRequest": {
+            "type": "object",
+            "required": [
+                "content_type",
+                "file_name"
+            ],
+            "properties": {
+                "content_type": {
+                    "description": "e.g. \"image/png\"",
+                    "type": "string"
+                },
+                "file_name": {
+                    "description": "e.g. \"avatar.png\"",
+                    "type": "string"
+                }
+            }
+        },
+        "models.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "final_url": {
+                    "description": "Frontend saves this to the user profile",
+                    "type": "string"
+                },
+                "upload_url": {
+                    "description": "Frontend uses this to PUT the file",
                     "type": "string"
                 }
             }

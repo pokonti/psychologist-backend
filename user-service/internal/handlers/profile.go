@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/user-service/config"
+	"github.com/pokonti/psychologist-backend/user-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -257,6 +260,43 @@ func (h *ProfileHandler) GetMoodGraphic(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// GenerateUploadURL godoc
+// @Summary      Get a secure URL to upload an avatar
+// @Description  Returns a presigned URL. The frontend must then perform a PUT request with the raw file bytes to this URL.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body models.UploadRequest true "File info"
+// @Success      200 {object} models.UploadResponse
+// @Router       /users/me/avatar-url [post]
+func (h *ProfileHandler) GenerateUploadURL(c *gin.Context) {
+	userID := c.GetHeader("X-User-ID")
+
+	var req models.UploadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	extension := filepath.Ext(req.FileName)
+	uniqueFileName := fmt.Sprintf("avatars/%s/%s%s", userID, uuid.NewString(), extension)
+
+	presignedURL, err := clients.GeneratePresignedURL(uniqueFileName, req.ContentType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
+		return
+	}
+
+	// Construct the Final Public URL
+	finalURL := fmt.Sprintf("%s/%s/%s", clients.Endpoint, clients.BucketName, uniqueFileName)
+
+	c.JSON(http.StatusOK, models.UploadResponse{
+		UploadURL: presignedURL,
+		FinalURL:  finalURL,
+	})
 }
 
 func getMoodScore(mood string) int {
