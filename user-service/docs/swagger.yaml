@@ -71,6 +71,27 @@ definitions:
       specialization:
         type: string
     type: object
+  models.UploadRequest:
+    properties:
+      content_type:
+        description: e.g. "image/png"
+        type: string
+      file_name:
+        description: e.g. "avatar.png"
+        type: string
+    required:
+    - content_type
+    - file_name
+    type: object
+  models.UploadResponse:
+    properties:
+      final_url:
+        description: Frontend saves this to the user profile
+        type: string
+      upload_url:
+        description: Frontend uses this to PUT the file
+        type: string
+    type: object
   models.UserProfile:
     properties:
       auth_id:
@@ -207,6 +228,31 @@ paths:
       security:
       - BearerAuth: []
       summary: Update current user's profile
+      tags:
+      - profile
+  /users/me/avatar-url:
+    post:
+      consumes:
+      - application/json
+      description: Returns a presigned URL. The frontend must then perform a PUT request
+        with the raw file bytes to this URL.
+      parameters:
+      - description: File info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UploadResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a secure URL to upload an avatar
       tags:
       - profile
   /users/me/mood:

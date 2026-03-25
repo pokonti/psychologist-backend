@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 	"github.com/pokonti/psychologist-backend/user-service/config"
+	"github.com/pokonti/psychologist-backend/user-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/user-service/internal/consumer"
 	grpcserver "github.com/pokonti/psychologist-backend/user-service/internal/grpc"
 	"github.com/pokonti/psychologist-backend/user-service/internal/handlers"
@@ -41,6 +42,8 @@ func main() {
 
 	go consumer.StartListening(rabbitCh, rabbitQueue)
 	go worker.StartTelegramBot()
+
+	clients.InitS3()
 
 	profileRepo := repository.NewGormProfileRepository(db)
 

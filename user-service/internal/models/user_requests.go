@@ -21,3 +21,8 @@ type PublicPsychologistResponse struct {
 	Description    string  `json:"description,omitempty"`
 	Rating         float32 `json:"rating"`
 }
+
+type UploadRequest struct {
+	FileName    string `json:"file_name" binding:"required"`    // e.g. "avatar.png"
+	ContentType string `json:"content_type" binding:"required"` // e.g. "image/png"
+}
