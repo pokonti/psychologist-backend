@@ -53,6 +53,7 @@ services:
     depends_on:
       - user-service
       - auth-service
+      - redis
     networks:
         - backend
 
@@ -126,6 +127,14 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
     networks:
       - backend
 

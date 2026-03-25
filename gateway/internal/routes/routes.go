@@ -9,10 +9,15 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	api := r.Group("/api/v1")
 
-	api.POST("/auth/register", proxy.Forward("http://auth-service:8083"))
-	api.POST("/auth/login", proxy.Forward("http://auth-service:8083"))
-	api.POST("/auth/verify", proxy.Forward("http://auth-service:8083"))
-	api.POST("/auth/refresh", proxy.Forward("http://auth-service:8083"))
+	api.Use(middleware.SetupRateLimiter())
+
+	authGroup := api.Group("/auth", middleware.SetupAuthLimiter())
+	{
+		authGroup.POST("/register", proxy.Forward("http://auth-service:8083"))
+		authGroup.POST("/login", proxy.Forward("http://auth-service:8083"))
+		authGroup.POST("/verify", proxy.Forward("http://auth-service:8083"))
+		authGroup.POST("/refresh", proxy.Forward("http://auth-service:8083"))
+	}
 
 	// Protected routes
 	protected := api.Group("", middleware.JWTAuth())
