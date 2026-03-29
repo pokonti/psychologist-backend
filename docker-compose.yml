@@ -43,7 +43,7 @@ services:
       dockerfile: gateway/Dockerfile
     container_name: gateway
     ports:
-      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+      - "${GATEWAY_PORT2}:${GATEWAY_PORT}"
     env_file:
       - .env
     depends_on:
