@@ -12,7 +12,8 @@ RUN go mod download
 
 COPY booking-service/ .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o booking-service ./cmd/main.go
+#RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o booking-service ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o booking-service ./cmd/main.go
 
 # Runtime Stage
 FROM alpine:3.19

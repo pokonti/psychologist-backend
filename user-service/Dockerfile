@@ -12,8 +12,8 @@ RUN go mod download
 
 COPY user-service/ ./
 
-RUN GOOS=linux GOARCH=arm64 go build -o user-service ./cmd/main.go
-
+#RUN GOOS=linux GOARCH=arm64 go build -o user-service ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o user-service ./cmd/main.go
 # ===== Runtime Stage =====
 FROM alpine:3.19
 
