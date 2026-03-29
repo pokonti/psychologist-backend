@@ -20,7 +20,7 @@ import (
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
-
+	r.TrustedPlatform = gin.PlatformCloudflare
 	config.ConnectDB()
 
 	config.ConnectRabbitMQ()

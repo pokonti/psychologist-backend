@@ -46,6 +46,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.TrustedPlatform = gin.PlatformCloudflare
 
 	worker.StartReminderWorker(userClient, rabbitMQ)
 

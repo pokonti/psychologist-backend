@@ -31,7 +31,6 @@ func StartTelegramBot() {
 
 	updates := bot.GetUpdatesChan(u)
 
-	// Listen for messages forever
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -54,9 +53,8 @@ func StartTelegramBot() {
 					continue
 				}
 
-				// If NOT linked, check if they provided a UUID
 				if args == "" {
-					reply := tgbotapi.NewMessage(chatID, "Welcome to KBTU Care! Please open KBTU Care at http:... and click the button!")
+					reply := tgbotapi.NewMessage(chatID, "Welcome to KBTU Care! Please open your profile at https:// and click the 'Connect Telegram' button.")
 					bot.Send(reply)
 					continue
 				}
@@ -71,7 +69,6 @@ func StartTelegramBot() {
 				}
 
 				// Update their Telegram Chat ID
-				chatIDStr = fmt.Sprintf("%d", chatID) // Convert int64 to string
 				profile.TelegramChatID = chatIDStr
 
 				if err := config.DB.Save(&profile).Error; err != nil {

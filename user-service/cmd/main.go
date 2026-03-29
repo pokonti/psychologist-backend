@@ -49,6 +49,7 @@ func main() {
 
 	go func() {
 		r := gin.Default()
+		r.TrustedPlatform = gin.PlatformCloudflare
 		profileHandler := handlers.NewProfileHandler(profileRepo)
 		routes.SetupRoutes(r, profileHandler)
 

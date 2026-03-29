@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,8 +21,6 @@ services:
       context: .
       dockerfile: user-service/Dockerfile
     container_name: user-service
-    ports:
-      - "${USER_PORT}:${USER_PORT}"
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -63,8 +59,6 @@ services:
       context: .
       dockerfile: auth-service/Dockerfile
     container_name: auth-service
-    ports:
-      - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -83,8 +77,6 @@ services:
       context: .
       dockerfile: booking-service/Dockerfile
     container_name: booking-service
-    ports:
-      - "${BOOKING_PORT}:${BOOKING_PORT}"
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -102,9 +94,11 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"   # AMQP protocol port
-      - "15672:15672" # Web Management UI
+      - "15672:15672"
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
@@ -133,8 +127,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
     networks:
       - backend
 
