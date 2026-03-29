@@ -136,7 +136,7 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:8080
+host: api.kbtucare.site
 info:
   contact: {}
   description: User profiles and psychologist directory for KBTU counseling system.
@@ -329,6 +329,9 @@ paths:
       summary: List psychologists for booking
       tags:
       - users
+schemes:
+- https
+- http
 securityDefinitions:
   BearerAuth:
     in: header

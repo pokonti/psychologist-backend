@@ -15,7 +15,8 @@ import (
 // @title           Auth Service API
 // @version         1.0
 // @description     This is the authentication service for the Psychologist Backend.
-// @host            localhost:8080
+// @host            api.kbtucare.site
+// @schemes         https http
 // @BasePath        /api/v1/auth
 func main() {
 	gin.SetMode(gin.ReleaseMode)

@@ -1687,9 +1687,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "api.kbtucare.site",
 	BasePath:         "/api/v1",
-	Schemes:          []string{"http"},
+	Schemes:          []string{"https", "http"},
 	Title:            "KBTU Psychologist Booking Service API",
 	Description:      "Slot scheduling and booking system for KBTU counseling platform.",
 	InfoInstanceName: "swagger",

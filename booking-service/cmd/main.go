@@ -16,8 +16,8 @@ import (
 // @version     1.0
 // @description Slot scheduling and booking system for KBTU counseling platform.
 // @BasePath    /api/v1
-// @host        localhost:8080
-// @schemes     http
+// @host            api.kbtucare.site
+// @schemes         https http
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization

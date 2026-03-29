@@ -272,7 +272,7 @@ definitions:
       psychologist_name:
         type: string
     type: object
-host: localhost:8080
+host: api.kbtucare.site
 info:
   contact: {}
   description: Slot scheduling and booking system for KBTU counseling platform.
@@ -1093,6 +1093,7 @@ paths:
       tags:
       - student-waitlist
 schemes:
+- https
 - http
 securityDefinitions:
   BearerAuth:

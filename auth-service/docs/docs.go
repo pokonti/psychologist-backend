@@ -444,9 +444,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "api.kbtucare.site",
 	BasePath:         "/api/v1/auth",
-	Schemes:          []string{},
+	Schemes:          []string{"https", "http"},
 	Title:            "Auth Service API",
 	Description:      "This is the authentication service for the Psychologist Backend.",
 	InfoInstanceName: "swagger",

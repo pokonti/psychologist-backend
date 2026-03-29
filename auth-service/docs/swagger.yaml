@@ -87,7 +87,7 @@ definitions:
     - code
     - email
     type: object
-host: localhost:8080
+host: api.kbtucare.site
 info:
   contact: {}
   description: This is the authentication service for the Psychologist Backend.
@@ -284,4 +284,7 @@ paths:
       summary: Verify Email
       tags:
       - auth
+schemes:
+- https
+- http
 swagger: "2.0"

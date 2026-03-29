@@ -23,7 +23,8 @@ import (
 // @title           User Service API
 // @version         1.0
 // @description     User profiles and psychologist directory for KBTU counseling system.
-// @host            localhost:8080
+// @host            api.kbtucare.site
+// @schemes         https http
 // @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header

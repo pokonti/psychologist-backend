@@ -1,4 +1,8 @@
 {
+    "schemes": [
+        "https",
+        "http"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "This is the authentication service for the Psychologist Backend.",
@@ -6,7 +10,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "api.kbtucare.site",
     "basePath": "/api/v1/auth",
     "paths": {
         "/admin/users": {
