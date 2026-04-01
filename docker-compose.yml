@@ -21,6 +21,7 @@ services:
       context: .
       dockerfile: user-service/Dockerfile
     container_name: user-service
+    restart: always
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -42,6 +43,7 @@ services:
       context: .           
       dockerfile: gateway/Dockerfile
     container_name: gateway
+    restart: always
     ports:
       - "${GATEWAY_PORT2}:${GATEWAY_PORT}"
     env_file:
@@ -59,6 +61,7 @@ services:
       context: .
       dockerfile: auth-service/Dockerfile
     container_name: auth-service
+    restart: always
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -77,6 +80,7 @@ services:
       context: .
       dockerfile: booking-service/Dockerfile
     container_name: booking-service
+    restart: always
     environment:
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
@@ -112,6 +116,7 @@ services:
       context: .
       dockerfile: notification-service/Dockerfile
     container_name: notification-service
+    restart: always
     environment:
       RABBITMQ_URL: ${RABBITMQ_URL}
       RESEND_API_KEY: ${RESEND_API_KEY}
