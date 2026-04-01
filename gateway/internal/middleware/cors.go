@@ -6,6 +6,7 @@ func CorsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		allowedOrigins := []string{
 			"http://localhost:5173",
+			"https://frontend-diploma-8zym.vercel.app",
 			"https://kbtucare.site",
 			"https://www.kbtucare.site",
 		}
