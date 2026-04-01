@@ -12,11 +12,11 @@ import (
 func main() {
 	r := gin.Default()
 
+	r.Use(middleware.CorsMiddleware())
+
 	r.TrustedPlatform = gin.PlatformCloudflare
 
 	routes.SetupRoutes(r)
-
-	r.Use(middleware.CorsMiddleware())
 
 	port := os.Getenv("GATEWAY_PORT")
 	if port == "" {
