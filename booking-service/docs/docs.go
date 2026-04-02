@@ -756,12 +756,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Booking details: type and answers",
+                        "description": "Booking details: type",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.BookSlotInput"
+                            "$ref": "#/definitions/models.ReserveSlotInput"
                         }
                     }
                 ],
@@ -890,12 +890,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Booking details (type, phone, answers)",
+                        "description": "Booking details (phone, answers)",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.BookSlotInput"
+                            "$ref": "#/definitions/models.ConfirmSlotInput"
                         }
                     }
                 ],
@@ -1112,12 +1112,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Booking details: type and answers",
+                        "description": "Booking details: type",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.BookSlotInput"
+                            "$ref": "#/definitions/models.ReserveSlotInput"
                         }
                     }
                 ],
@@ -1346,28 +1346,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BookSlotInput": {
-            "type": "object",
-            "required": [
-                "booking_type",
-                "phone_number"
-            ],
-            "properties": {
-                "answers": {
-                    "type": "string"
-                },
-                "booking_type": {
-                    "type": "string",
-                    "enum": [
-                        "online",
-                        "offline"
-                    ]
-                },
-                "phone_number": {
-                    "type": "string"
-                }
-            }
-        },
         "models.CalendarAvailabilityResponse": {
             "type": "object",
             "properties": {
@@ -1380,6 +1358,21 @@ const docTemplate = `{
                         "2026-02-10",
                         "2026-02-14"
                     ]
+                }
+            }
+        },
+        "models.ConfirmSlotInput": {
+            "type": "object",
+            "required": [
+                "phone_number"
+            ],
+            "properties": {
+                "answers": {
+                    "type": "string",
+                    "example": "{\"reason\": \"Exam stress\"}"
+                },
+                "phone_number": {
+                    "type": "string"
                 }
             }
         },
@@ -1563,6 +1556,22 @@ const docTemplate = `{
             "properties": {
                 "new_slot_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ReserveSlotInput": {
+            "type": "object",
+            "required": [
+                "booking_type"
+            ],
+            "properties": {
+                "booking_type": {
+                    "type": "string",
+                    "enum": [
+                        "online",
+                        "offline"
+                    ],
+                    "example": "online"
                 }
             }
         },

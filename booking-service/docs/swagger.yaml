@@ -51,21 +51,6 @@ definitions:
       review:
         type: string
     type: object
-  models.BookSlotInput:
-    properties:
-      answers:
-        type: string
-      booking_type:
-        enum:
-        - online
-        - offline
-        type: string
-      phone_number:
-        type: string
-    required:
-    - booking_type
-    - phone_number
-    type: object
   models.CalendarAvailabilityResponse:
     properties:
       available_dates:
@@ -75,6 +60,16 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  models.ConfirmSlotInput:
+    properties:
+      answers:
+        example: '{"reason": "Exam stress"}'
+        type: string
+      phone_number:
+        type: string
+    required:
+    - phone_number
     type: object
   models.CreateScheduleInput:
     properties:
@@ -200,6 +195,17 @@ definitions:
         type: string
     required:
     - new_slot_id
+    type: object
+  models.ReserveSlotInput:
+    properties:
+      booking_type:
+        enum:
+        - online
+        - offline
+        example: online
+        type: string
+    required:
+    - booking_type
     type: object
   models.ScheduleCreatedResponse:
     properties:
@@ -754,12 +760,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: 'Booking details: type and answers'
+      - description: 'Booking details: type'
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.BookSlotInput'
+          $ref: '#/definitions/models.ReserveSlotInput'
       produces:
       - application/json
       responses:
@@ -842,12 +848,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: Booking details (type, phone, answers)
+      - description: Booking details (phone, answers)
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.BookSlotInput'
+          $ref: '#/definitions/models.ConfirmSlotInput'
       produces:
       - application/json
       responses:
@@ -988,12 +994,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: 'Booking details: type and answers'
+      - description: 'Booking details: type'
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.BookSlotInput'
+          $ref: '#/definitions/models.ReserveSlotInput'
       produces:
       - application/json
       responses:

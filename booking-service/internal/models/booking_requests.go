@@ -12,12 +12,14 @@ type DaySchedule struct {
 	StartTimes []string `json:"start_times" binding:"required"` // ["09:00", "10:00", "14:00"]
 }
 
-type BookSlotInput struct {
-	BookingType string `json:"booking_type" binding:"required,oneof=online offline"`
-	Answers     string `json:"answers"`
-	PhoneNumber string `json:"phone_number" binding:"required"`
+type ReserveSlotInput struct {
+	BookingType string `json:"booking_type" binding:"required,oneof=online offline" example:"online"`
 }
 
+type ConfirmSlotInput struct {
+	Answers     string `json:"answers" example:"{\"reason\": \"Exam stress\"}"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
+}
 type RescheduleInput struct {
 	NewSlotID string `json:"new_slot_id" binding:"required"`
 }

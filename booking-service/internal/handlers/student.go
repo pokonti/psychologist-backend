@@ -134,7 +134,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 // @Produce      json
 // @Security BearerAuth
 // @Param        id         path    string         true  "Slot ID"
-// @Param        request  body   models.BookSlotInput  true  "Booking details: type and answers"
+// @Param        request  body   models.ReserveSlotInput  true  "Booking details: type"
 // @Success 200 {object} models.MessageResponse
 // @Failure      400  {object}  models.ErrorResponse "invalid request body"
 // @Failure      404  {object}  models.ErrorResponse "slot not found"
@@ -146,6 +146,12 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 func (h *BookingHandler) ReserveSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
+
+	var input models.ReserveSlotInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
 
 	var slot models.Slot
 	if err := config.DB.First(&slot, "id = ?", slotID).Error; err != nil {
@@ -199,10 +205,11 @@ func (h *BookingHandler) ReserveSlot(c *gin.Context) {
 	res := config.DB.Model(&models.Slot{}).
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
-			"status":      models.StatusReserved,
-			"student_id":  studentID,
-			"reserved_at": now,
-			"version":     slot.Version + 1,
+			"status":       models.StatusReserved,
+			"student_id":   studentID,
+			"booking_type": input.BookingType,
+			"reserved_at":  now,
+			"version":      slot.Version + 1,
 		})
 
 	if res.RowsAffected == 0 {
@@ -225,7 +232,7 @@ func (h *BookingHandler) ReserveSlot(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id      path   string               true  "Slot ID (Must be currently 'reserved')"
-// @Param        request body   models.BookSlotInput true  "Booking details (type, phone, answers)"
+// @Param        request body   models.ConfirmSlotInput true  "Booking details (phone, answers)"
 // @Success      200 {object}   models.MessageResponse
 // @Failure      400 {object}   models.ErrorResponse "Invalid request body"
 // @Failure      403 {object}   models.ErrorResponse "Not authorized or no active reservation"
@@ -237,7 +244,7 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 	slotID := c.Param("id")
 	studentID := c.GetHeader("X-User-ID")
 
-	var input models.BookSlotInput
+	var input models.ConfirmSlotInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error: err.Error()})
@@ -267,7 +274,6 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 		Where("id = ? AND version = ?", slot.ID, slot.Version).
 		Updates(map[string]interface{}{
 			"status":                models.StatusBooked,
-			"booking_type":          input.BookingType,
 			"questionnaire_answers": input.Answers,
 			"phone_number":          input.PhoneNumber,
 			"version":               slot.Version + 1,
@@ -303,7 +309,7 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 			Data: map[string]string{
 				"psychologist_name": psychName,
 				"datetime":          formattedDate,
-				"format":            input.BookingType,
+				"format":            slot.BookingType,
 			},
 		}
 
