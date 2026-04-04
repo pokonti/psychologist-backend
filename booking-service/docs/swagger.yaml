@@ -61,13 +61,16 @@ definitions:
           type: string
         type: array
     type: object
-  models.CancelAppointmentInput:
+  models.CancellationInput:
     properties:
-      reason:
-        example: Schedule conflict with my midterm exam
+      reason_message:
+        example: I have an unexpected lecture at this time.
+        type: string
+      reason_topic:
+        example: Schedule Conflict
         type: string
     required:
-    - reason
+    - reason_topic
     type: object
   models.ConfirmSlotInput:
     properties:
@@ -522,6 +525,12 @@ paths:
         name: id
         required: true
         type: string
+      - description: Cancellation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CancellationInput'
       produces:
       - application/json
       responses:
@@ -812,12 +821,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: Reason for cancellation
+      - description: Cancellation details
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CancelAppointmentInput'
+          $ref: '#/definitions/models.CancellationInput'
       produces:
       - application/json
       responses:

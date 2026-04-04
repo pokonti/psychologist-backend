@@ -377,6 +377,15 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Cancellation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CancellationInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -823,12 +832,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Reason for cancellation",
+                        "description": "Cancellation details",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CancelAppointmentInput"
+                            "$ref": "#/definitions/models.CancellationInput"
                         }
                     }
                 ],
@@ -1370,15 +1379,19 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CancelAppointmentInput": {
+        "models.CancellationInput": {
             "type": "object",
             "required": [
-                "reason"
+                "reason_topic"
             ],
             "properties": {
-                "reason": {
+                "reason_message": {
                     "type": "string",
-                    "example": "Schedule conflict with my midterm exam"
+                    "example": "I have an unexpected lecture at this time."
+                },
+                "reason_topic": {
+                    "type": "string",
+                    "example": "Schedule Conflict"
                 }
             }
         },

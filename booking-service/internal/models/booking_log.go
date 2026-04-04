@@ -8,6 +8,7 @@ type BookingLog struct {
 	PsychologistID string    `gorm:"type:uuid;index" json:"psychologist_id"`
 	StudentID      string    `gorm:"type:uuid;index" json:"student_id"`
 	Action         string    `gorm:"type:varchar(50);not null" json:"action"` // "booked", "canceled_by_student", "canceled_by_psychologist", "rescheduled"
-	Reason         string    `json:"reason"`
+	ReasonTopic    string    `json:"reason_topic"`                            // e.g., "Schedule Conflict"
+	ReasonMessage  string    `json:"reason_message"`                          // e.g., "I have a mid-term exam"
 	Timestamp      time.Time `gorm:"index" json:"timestamp"`
 }

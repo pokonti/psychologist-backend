@@ -393,6 +393,7 @@ func (h *BookingHandler) GetStudentHistory(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      string  true  "Slot ID (UUID)"
+// @Param        request body models.CancellationInput true "Cancellation details"
 // @Success      200  {object}  models.MessageResponse
 // @Failure      403  {object}  models.ErrorResponse "Not authorized"
 // @Failure      404  {object}  models.ErrorResponse "Slot not found"
@@ -405,6 +406,12 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 
 	if role != "psychologist" {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Only psychologists can cancel appointments"})
+		return
+	}
+
+	var input models.CancellationInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -442,7 +449,7 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 		return
 	}
 
-	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_psychologist")
+	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_psychologist", input.ReasonTopic, input.ReasonMessage)
 
 	go func() {
 		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
@@ -462,11 +469,14 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 
 		if studentEmail != "" {
 			msg := clients.NotificationMessage{
-				Type:    "booking_cancellation_by_psychologist",
+				Type:    "booking_cancellation",
 				ToEmail: studentEmail,
 				Data: map[string]string{
 					"psychologist_name": psychName,
 					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+					"cancelled_by":      "the psychologist",
+					"reason_topic":      input.ReasonTopic,
+					"reason_message":    input.ReasonMessage,
 				},
 			}
 			h.RabbitMQ.PublishNotification(msg)

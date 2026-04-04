@@ -42,6 +42,7 @@ type RateSessionInput struct {
 	Review string `json:"review" binding:"omitempty,max=500"`    // Optional text review
 }
 
-type CancelAppointmentInput struct {
-	Reason string `json:"reason" binding:"required" example:"Schedule conflict with my midterm exam"`
+type CancellationInput struct {
+	ReasonTopic   string `json:"reason_topic" binding:"required" example:"Schedule Conflict"`
+	ReasonMessage string `json:"reason_message" example:"I have an unexpected lecture at this time."`
 }

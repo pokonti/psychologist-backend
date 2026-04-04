@@ -73,13 +73,35 @@ func processMessage(body []byte) {
 			<p>This code will expire in 15 minutes.</p>
 		`, msg.Data["code"])
 
+	//case "booking_cancellation":
+	//	subject = "Appointment Canceled ❌"
+	//	htmlBody = fmt.Sprintf(`
+	//		<h2>Appointment Canceled</h2>
+	//		<p>Your appointment with <b>%s</b> on <b>%s</b> has been canceled.</p>
+	//		<p>We hope to see you again soon.</p>`, msg.Data["psychologist_name"], msg.Data["datetime"])
 	case "booking_cancellation":
 		subject = "Appointment Canceled ❌"
+
+		cancelledBy := msg.Data["cancelled_by"]
+		reasonTopic := msg.Data["reason_topic"]
+		reasonMessage := msg.Data["reason_message"]
+
+		reasonHTML := ""
+		if reasonTopic != "" {
+			reasonHTML += fmt.Sprintf("<p><b>Reason:</b> %s</p>", reasonTopic)
+		}
+		if reasonMessage != "" {
+			reasonHTML += fmt.Sprintf("<p><i>\"%s\"</i></p>", reasonMessage)
+		}
+
 		htmlBody = fmt.Sprintf(`
 			<h2>Appointment Canceled</h2>
-			<p>Your appointment with <b>%s</b> on <b>%s</b> has been canceled.</p>
-			<p>We hope to see you again soon.</p>`, msg.Data["psychologist_name"], msg.Data["datetime"])
-
+			<p>Hello,</p>
+			<p>Your appointment with <b>%s</b> scheduled for <b>%s</b> has been canceled by <b>%s</b>.</p>
+			%s <!-- This inserts the reason block we built above -->
+			<p>We apologize for any inconvenience.</p>
+			<p>If you have any questions, please contact the KBTU Care support team or book a new slot on the platform.</p>
+		`, msg.Data["psychologist_name"], msg.Data["datetime"], cancelledBy, reasonHTML)
 	case "booking_cancellation_by_psychologist":
 		subject = "Appointment Canceled ❌"
 		htmlBody = fmt.Sprintf(`
