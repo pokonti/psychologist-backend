@@ -45,9 +45,10 @@ func InitS3() {
 // GeneratePresignedURL creates a temporary URL valid for 15 minutes
 func GeneratePresignedURL(objectKey string, contentType string) (string, error) {
 	req, _ := S3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: aws.String(BucketName),
-		Key:    aws.String(objectKey),
-		//ContentType: aws.String(contentType),
+		Bucket:      aws.String(BucketName),
+		Key:         aws.String(objectKey),
+		ContentType: aws.String(contentType),
+		ACL:         aws.String("public-read"),
 	})
 
 	// URL expires in 15 minutes
