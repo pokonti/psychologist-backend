@@ -48,7 +48,6 @@ func GeneratePresignedURL(objectKey string, contentType string) (string, error) 
 		Bucket:      aws.String(BucketName),
 		Key:         aws.String(objectKey),
 		ContentType: aws.String(contentType),
-		ACL:         aws.String("public-read"),
 	})
 
 	// URL expires in 15 minutes
