@@ -41,3 +41,7 @@ type RateSessionInput struct {
 	Rating int    `json:"rating" binding:"required,min=1,max=5"` // Must be 1-5
 	Review string `json:"review" binding:"omitempty,max=500"`    // Optional text review
 }
+
+type CancelAppointmentInput struct {
+	Reason string `json:"reason" binding:"required" example:"Schedule conflict with my midterm exam"`
+}

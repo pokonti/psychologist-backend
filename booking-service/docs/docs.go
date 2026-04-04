@@ -821,6 +821,15 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Reason for cancellation",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CancelAppointmentInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -1358,6 +1367,18 @@ const docTemplate = `{
                         "2026-02-10",
                         "2026-02-14"
                     ]
+                }
+            }
+        },
+        "models.CancelAppointmentInput": {
+            "type": "object",
+            "required": [
+                "reason"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "example": "Schedule conflict with my midterm exam"
                 }
             }
         },

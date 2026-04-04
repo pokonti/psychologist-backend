@@ -30,6 +30,10 @@ services:
       DB_PORT: ${DB_PORT}
       RABBITMQ_URL: ${RABBITMQ_URL}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DO_SPACES_KEY: ${DO_SPACES_KEY}
+      DO_SPACES_SECRET: ${DO_SPACES_SECRET}
+      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT}
+      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET}
     depends_on:
       postgres:
         condition: service_healthy

@@ -417,6 +417,7 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      string  true  "Slot ID (UUID)"
+// @Param        request body      models.CancelAppointmentInput true  "Reason for cancellation"
 // @Success      200  {object}  models.MessageResponse "Appointment successfully canceled"
 // @Failure      400  {object}  models.ErrorResponse   "Invalid request"
 // @Failure      403  {object}  models.ErrorResponse   "Not authorized or not the owner"
@@ -433,6 +434,12 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, models.ErrorResponse{
 			Error: "Only students can cancel their appointments",
 		})
+		return
+	}
+
+	var input models.CancelAppointmentInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Cancellation reason is required"})
 		return
 	}
 
@@ -485,7 +492,7 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 		return
 	}
 
-	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_student")
+	logBookingAction(slot.ID, slot.PsychologistID, *slot.StudentID, "canceled_by_student", input.Reason)
 
 	go func() {
 		resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{

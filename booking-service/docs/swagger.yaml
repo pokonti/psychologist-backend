@@ -61,6 +61,14 @@ definitions:
           type: string
         type: array
     type: object
+  models.CancelAppointmentInput:
+    properties:
+      reason:
+        example: Schedule conflict with my midterm exam
+        type: string
+    required:
+    - reason
+    type: object
   models.ConfirmSlotInput:
     properties:
       answers:
@@ -804,6 +812,12 @@ paths:
         name: id
         required: true
         type: string
+      - description: Reason for cancellation
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CancelAppointmentInput'
       produces:
       - application/json
       responses:

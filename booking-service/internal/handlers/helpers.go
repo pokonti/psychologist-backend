@@ -87,7 +87,7 @@ func getWeekRange(date time.Time) (time.Time, time.Time) {
 	return startOfWeek, endOfWeek
 }
 
-func logBookingAction(slotID, psychID, studentID, action string) {
+func logBookingAction(slotID, psychID, studentID, action, reason string) {
 	logEntry := models.BookingLog{
 		ID:             uuid.NewString(),
 		SlotID:         slotID,
