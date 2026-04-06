@@ -291,11 +291,12 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 			Ids: []string{studentID, slot.PsychologistID},
 		})
 
-		var studentEmail, psychName string
+		var studentEmail, psychName, tgID string
 		if err == nil {
 			for _, p := range grpcResp.Profiles {
 				if p.Id == studentID {
 					studentEmail = p.Email
+					tgID = p.TelegramChatId
 				} else if p.Id == slot.PsychologistID {
 					psychName = p.FullName
 				}
@@ -313,6 +314,7 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 				"format":            slot.BookingType,
 				"start_time_raw":    slot.StartTime.Format(time.RFC3339),
 				"slot_id":           slot.ID,
+				"telegram_chat_id":  tgID,
 			},
 		}
 
@@ -503,11 +505,12 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 			Ids: []string{studentID, psychID},
 		})
 
-		var studentEmail, psychName string
+		var studentEmail, psychName, tgID string
 		if err == nil {
 			for _, p := range resp.Profiles {
 				if p.Id == studentID {
 					studentEmail = p.Email
+					tgID = p.TelegramChatId
 				} else if p.Id == psychID {
 					psychName = p.FullName
 				}
@@ -521,6 +524,7 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 				Data: map[string]string{
 					"psychologist_name": psychName,
 					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+					"telegram_chat_id":  tgID,
 				},
 			}
 			h.RabbitMQ.PublishNotification(msg)

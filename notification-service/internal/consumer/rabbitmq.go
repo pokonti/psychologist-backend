@@ -97,6 +97,15 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 			<p>Thank you for using KBTU Care.</p>
 		`, msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["format"], linkHTML)
 
+		if tgChatID := msg.Data["telegram_chat_id"]; tgChatID != "" {
+			tgText := fmt.Sprintf("✅ <b>Booking Confirmed!</b>\nSpecialist: %s\nTime: %s\nFormat: %s",
+				msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["format"])
+			err := telegram.SendMessage(tgChatID, tgText)
+			if err != nil {
+				log.Printf("Failed to send Telegram reminder: %v", err)
+			}
+		}
+
 	case "auth_verification":
 		subject = "Verify your KBTU Care Account"
 		htmlBody = fmt.Sprintf(`
@@ -104,13 +113,6 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 			<p>Your verification code is: <b>%s</b></p>
 			<p>This code will expire in 15 minutes.</p>
 		`, msg.Data["code"])
-
-	//case "booking_cancellation":
-	//	subject = "Appointment Canceled ❌"
-	//	htmlBody = fmt.Sprintf(`
-	//		<h2>Appointment Canceled</h2>
-	//		<p>Your appointment with <b>%s</b> on <b>%s</b> has been canceled.</p>
-	//		<p>We hope to see you again soon.</p>`, msg.Data["psychologist_name"], msg.Data["datetime"])
 	case "booking_cancellation":
 		subject = "Appointment Canceled ❌"
 
@@ -143,6 +145,15 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 			<p>We apologize for the inconvenience.</p>
 			<p>If you have any questions, please contact the KBTU Care support team.</p>
 		`, msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["psychologist_name"])
+
+		if tgChatID := msg.Data["telegram_chat_id"]; tgChatID != "" {
+			tgText := fmt.Sprintf("❌ <b>Appointment Canceled</b>\nYour session with %s on %s has been canceled by %s.",
+				msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["cancelled_by"])
+			err := telegram.SendMessage(tgChatID, tgText)
+			if err != nil {
+				log.Printf("Failed to send Telegram reminder: %v", err)
+			}
+		}
 
 	case "booking_reschedule":
 		subject = "Appointment Rescheduled 📅"
