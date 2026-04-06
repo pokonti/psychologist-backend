@@ -1504,6 +1504,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "meeting_link": {
+                    "type": "string"
+                },
                 "phone_number": {
                     "type": "string"
                 },
@@ -1634,6 +1637,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "meeting_link": {
+                    "type": "string"
+                },
                 "psychologist_id": {
                     "type": "string"
                 },
@@ -1658,6 +1664,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "meeting_link": {
                     "type": "string"
                 },
                 "psychologist_id": {

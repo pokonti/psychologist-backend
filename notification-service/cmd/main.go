@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/pokonti/psychologist-backend/notification-service/config"
+	"github.com/pokonti/psychologist-backend/notification-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/notification-service/internal/consumer"
 )
 
@@ -14,5 +15,8 @@ func main() {
 	defer conn.Close()
 	defer ch.Close()
 
-	consumer.StartListening(ch, q)
+	bookingClient, conngrpc, _ := clients.NewBookingClient()
+	defer conngrpc.Close()
+
+	consumer.StartListening(ch, q, bookingClient)
 }

@@ -46,3 +46,7 @@ type CancellationInput struct {
 	ReasonTopic   string `json:"reason_topic" binding:"required" example:"Schedule Conflict"`
 	ReasonMessage string `json:"reason_message" example:"I have an unexpected lecture at this time."`
 }
+
+type UpdateLinkInput struct {
+	MeetingLink string `json:"meeting_link" binding:"required"`
+}

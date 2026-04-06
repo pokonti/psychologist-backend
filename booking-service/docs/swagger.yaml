@@ -147,6 +147,8 @@ definitions:
         type: integer
       id:
         type: string
+      meeting_link:
+        type: string
       phone_number:
         type: string
       psychologist_id:
@@ -235,6 +237,8 @@ definitions:
         type: integer
       id:
         type: string
+      meeting_link:
+        type: string
       psychologist_id:
         type: string
       psychologist_name:
@@ -251,6 +255,8 @@ definitions:
       duration:
         type: integer
       id:
+        type: string
+      meeting_link:
         type: string
       psychologist_id:
         type: string

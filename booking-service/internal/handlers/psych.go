@@ -218,6 +218,7 @@ func (h *BookingHandler) GetMySchedule(c *gin.Context) {
 			StudentName:          studentName,
 			QuestionnaireAnswers: s.QuestionnaireAnswers,
 			PhoneNumber:          s.PhoneNumber,
+			MeetingLink:          s.MeetingLink,
 		})
 	}
 

@@ -2,14 +2,18 @@ package main
 
 import (
 	"log"
+	"net"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
 	_ "github.com/pokonti/psychologist-backend/booking-service/docs"
 	clients2 "github.com/pokonti/psychologist-backend/booking-service/internal/clients"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/grpcserver"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/handlers"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/worker"
 	"github.com/pokonti/psychologist-backend/booking-service/routes"
+	"github.com/pokonti/psychologist-backend/proto/bookings"
+	"google.golang.org/grpc"
 )
 
 // @title       KBTU Psychologist Booking Service API
@@ -51,6 +55,20 @@ func main() {
 	worker.StartReminderWorker(userClient, rabbitMQ)
 
 	routes.SetupRoutes(r, h)
+
+	go func() {
+		lis, err := net.Listen("tcp", ":9094")
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		s := grpc.NewServer()
+		bookings.RegisterBookingServiceServer(s, &grpcserver.BookingGrpcServer{})
+
+		log.Println("Booking gRPC server listening on :9094")
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
 
 	log.Println("Booking Service running on port 8084")
 	r.Run(":8084")

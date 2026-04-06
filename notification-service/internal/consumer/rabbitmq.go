@@ -1,18 +1,22 @@
 package consumer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/pokonti/psychologist-backend/notification-service/internal/email"
+	"github.com/pokonti/psychologist-backend/notification-service/internal/meetings"
 	"github.com/pokonti/psychologist-backend/notification-service/internal/models"
 	"github.com/pokonti/psychologist-backend/notification-service/internal/telegram"
+	"github.com/pokonti/psychologist-backend/proto/bookings"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // StartListening now takes the channel and queue injected from the config
-func StartListening(ch *amqp.Channel, q amqp.Queue) {
+func StartListening(ch *amqp.Channel, q amqp.Queue, bookingClient bookings.BookingServiceClient) {
 	msgs, err := ch.Consume(
 		q.Name,
 		"",
@@ -34,15 +38,14 @@ func StartListening(ch *amqp.Channel, q amqp.Queue) {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			processMessage(d.Body)
+			processMessage(d.Body, bookingClient)
 		}
 	}()
 
 	<-forever // Blocks the main thread forever
 }
 
-// processMessage remains exactly the same as your code
-func processMessage(body []byte) {
+func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 	var msg models.NotificationMessage
 	if err := json.Unmarshal(body, &msg); err != nil {
 		log.Printf("Error decoding JSON: %v", err)
@@ -50,6 +53,34 @@ func processMessage(body []byte) {
 	}
 
 	var subject, htmlBody string
+
+	meetingLink := ""
+	if msg.Type == "booking_confirmation" && msg.Data["format"] == "online" {
+		zoom := meetings.NewZoomClient()
+
+		startTime, _ := time.Parse(time.RFC3339, msg.Data["start_time_raw"])
+
+		topic := fmt.Sprintf("Session: %s", msg.Data["psychologist_name"])
+		link, err := zoom.CreateMeeting(topic, startTime)
+		if err == nil {
+			meetingLink = link
+			_, err := bookingClient.UpdateMeetingLink(context.Background(), &bookings.UpdateMeetingLinkRequest{
+				SlotId:      msg.Data["slot_id"],
+				MeetingLink: link,
+			})
+			if err != nil {
+				log.Printf("gRPC sync failed: %v", err)
+			}
+			log.Printf("Zoom link created: %s", link)
+		} else {
+			log.Printf("Zoom creation failed: %v", err)
+		}
+	}
+
+	linkHTML := ""
+	if meetingLink != "" {
+		linkHTML = fmt.Sprintf(`<p><b>Zoom Meeting Link:</b> <a href="%s">Join Session</a></p>`, meetingLink)
+	}
 
 	switch msg.Type {
 	case "booking_confirmation":
@@ -61,9 +92,10 @@ func processMessage(body []byte) {
 				<li><b>Specialist:</b> %s</li>
 				<li><b>Date & Time:</b> %s</li>
 				<li><b>Format:</b> %s</li>
+				%s
 			</ul>
 			<p>Thank you for using KBTU Care.</p>
-		`, msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["format"])
+		`, msg.Data["psychologist_name"], msg.Data["datetime"], msg.Data["format"], linkHTML)
 
 	case "auth_verification":
 		subject = "Verify your KBTU Care Account"
@@ -161,7 +193,10 @@ func processMessage(body []byte) {
 		tgChatID := msg.Data["telegram_chat_id"]
 		if tgChatID != "" {
 			tgText := fmt.Sprintf("⏰ <b>Reminder!</b>\nYou have an appointment with %s tomorrow at %s.", msg.Data["psychologist_name"], msg.Data["datetime"])
-			telegram.SendMessage(tgChatID, tgText)
+			err := telegram.SendMessage(tgChatID, tgText)
+			if err != nil {
+				log.Printf("Failed to send Telegram reminder: %v", err)
+			}
 		}
 
 	default:

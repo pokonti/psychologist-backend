@@ -124,6 +124,10 @@ services:
     environment:
       RABBITMQ_URL: ${RABBITMQ_URL}
       RESEND_API_KEY: ${RESEND_API_KEY}
+      ZOOM_ACCOUNT_ID: ${ZOOM_ACCOUNT_ID}
+      ZOOM_CLIENT_ID: ${ZOOM_CLIENT_ID}
+      ZOOM_CLIENT_SECRET: ${ZOOM_CLIENT_SECRET}
+      BOOKING_SERVICE_GRPC_ADDR: "booking-service:${BOOKING_GRPC}"
     depends_on:
       rabbitmq:
         condition: service_healthy

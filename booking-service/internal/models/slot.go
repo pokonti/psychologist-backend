@@ -21,6 +21,7 @@ type Slot struct {
 	StudentID  *string    `gorm:"type:uuid;default:null" json:"student_id"` // Nullable
 
 	BookingType string `gorm:"default:null" json:"booking_type"` // "online" or "offline"
+	MeetingLink string `gorm:"type:text" json:"meeting_link,omitempty"`
 
 	QuestionnaireAnswers string `gorm:"type:text" json:"questionnaire_answers"`
 

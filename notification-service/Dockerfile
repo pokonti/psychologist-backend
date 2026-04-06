@@ -2,6 +2,8 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
+COPY proto ./proto
+
 COPY notification-service/go.mod notification-service/go.sum ./notification-service/
 
 WORKDIR /app/notification-service

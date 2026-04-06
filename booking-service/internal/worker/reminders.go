@@ -31,8 +31,10 @@ func StartReminderWorker(userClient userprofile.UserProfileServiceClient, rabbit
 			}
 
 			// 2-Hour Reminders
-			targetStart1 := now.Add(2 * time.Hour).Add(-5 * time.Minute)
-			targetEnd1 := now.Add(2 * time.Hour)
+			//targetStart2 := now.Add(2 * time.Hour).Add(-5 * time.Minute)
+			//targetEnd2 := now.Add(2 * time.Hour)
+			targetStart1 := now
+			targetEnd1 := now.Add(10 * time.Minute)
 
 			var slots1 []models.Slot
 			config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, targetStart1, targetEnd1).Find(&slots1)
@@ -53,8 +55,7 @@ func sendReminder(slot models.Slot, userClient userprofile.UserProfileServiceCli
 		Ids: []string{*slot.StudentID, slot.PsychologistID},
 	})
 
-	var studentEmail, psychName string
-	var telegramChatID string
+	var studentEmail, psychName, telegramChatID string
 
 	if err == nil {
 		for _, p := range resp.Profiles {

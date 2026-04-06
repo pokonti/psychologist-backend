@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package bookings;
+
+option go_package = "github.com/pokonti/psychologist-backend/proto/bookings;bookings";
+
+service BookingService {
+  rpc UpdateMeetingLink (UpdateMeetingLinkRequest) returns (UpdateMeetingLinkResponse);
+}
+
+message UpdateMeetingLinkRequest {
+  string slot_id = 1;
+  string meeting_link = 2;
+}
+
+message UpdateMeetingLinkResponse {
+  bool success = 1;
+}

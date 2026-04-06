@@ -54,7 +54,7 @@ func StartTelegramBot() {
 				}
 
 				if args == "" {
-					reply := tgbotapi.NewMessage(chatID, "Welcome to KBTU Care! Please open your profile at https:// and click the 'Connect Telegram' button.")
+					reply := tgbotapi.NewMessage(chatID, "Welcome to KBTU Care! Please open your profile at https://kbtucare.site and click the 'Connect Telegram' button on your profile page.")
 					bot.Send(reply)
 					continue
 				}

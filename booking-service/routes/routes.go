@@ -55,4 +55,5 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 
 	// Swagger endpoint
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	api.PUT("/internal/slots/:id/link", h.InternalUpdateMeetingLink)
 }

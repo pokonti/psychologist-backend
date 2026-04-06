@@ -1502,6 +1502,9 @@
                 "id": {
                     "type": "string"
                 },
+                "meeting_link": {
+                    "type": "string"
+                },
                 "phone_number": {
                     "type": "string"
                 },
@@ -1632,6 +1635,9 @@
                 "id": {
                     "type": "string"
                 },
+                "meeting_link": {
+                    "type": "string"
+                },
                 "psychologist_id": {
                     "type": "string"
                 },
@@ -1656,6 +1662,9 @@
                     "type": "integer"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "meeting_link": {
                     "type": "string"
                 },
                 "psychologist_id": {

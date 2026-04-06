@@ -10,6 +10,7 @@ type SlotResponse struct {
 	BookingType      string    `json:"booking_type"`
 	PsychologistID   string    `json:"psychologist_id"`
 	PsychologistName string    `json:"psychologist_name"`
+	MeetingLink      string    `json:"meeting_link,omitempty"`
 }
 
 type ErrorResponse struct {
@@ -41,6 +42,7 @@ type PsychologistScheduleResponse struct {
 	StudentName          string    `json:"student_name"`
 	QuestionnaireAnswers string    `json:"questionnaire_answers,omitempty"`
 	PhoneNumber          string    `json:"phone_number,omitempty"`
+	MeetingLink          string    `json:"meeting_link,omitempty"`
 }
 
 type StudentAppointmentResponse struct {
@@ -52,6 +54,7 @@ type StudentAppointmentResponse struct {
 	PsychologistName       string    `json:"psychologist_name"`
 	QuestionnaireAnswers   string    `json:"questionnaire_answers,omitempty"`
 	StudentRecommendations string    `json:"student_recommendations,omitempty"`
+	MeetingLink            string    `json:"meeting_link,omitempty"`
 }
 
 type StudentHistoryResponse struct {

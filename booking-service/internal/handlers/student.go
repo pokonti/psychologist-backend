@@ -120,6 +120,7 @@ func (h *BookingHandler) GetAvailableSlots(c *gin.Context) {
 			Status:           s.Status,
 			PsychologistID:   s.PsychologistID,
 			PsychologistName: psychName,
+			MeetingLink:      s.MeetingLink,
 		})
 	}
 
@@ -310,6 +311,8 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 				"psychologist_name": psychName,
 				"datetime":          formattedDate,
 				"format":            slot.BookingType,
+				"start_time_raw":    slot.StartTime.Format(time.RFC3339),
+				"slot_id":           slot.ID,
 			},
 		}
 
@@ -404,6 +407,7 @@ func (h *BookingHandler) GetMyAppointments(c *gin.Context) {
 			PsychologistName:       psychName,
 			QuestionnaireAnswers:   s.QuestionnaireAnswers,
 			StudentRecommendations: s.StudentRecommendations,
+			MeetingLink:            s.MeetingLink,
 		})
 	}
 
@@ -762,4 +766,21 @@ func (h *BookingHandler) RateSession(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, models.MessageResponse{Message: "Thank you for your feedback!"})
+}
+
+func (h *BookingHandler) InternalUpdateMeetingLink(c *gin.Context) {
+	slotID := c.Param("id")
+	var input models.UpdateLinkInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := config.DB.Model(&models.Slot{}).Where("id = ?", slotID).Update("meeting_link", input.MeetingLink).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update link"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Link updated"})
 }
