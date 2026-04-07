@@ -28,7 +28,7 @@ func combineDateAndTime(date time.Time, timeStr string) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	loc, _ := time.LoadLocation("Asia/Almaty")
+	loc := time.FixedZone("Asia/Almaty", 5*60*60)
 
 	localTime := time.Date(
 		date.Year(), date.Month(), date.Day(),
