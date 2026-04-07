@@ -11,36 +11,30 @@ import (
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
 
-// StartReminderWorker checks for upcoming appointments and sends reminders
 func StartReminderWorker(userClient userprofile.UserProfileServiceClient, rabbitMQ *clients.RabbitMQClient) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 
 	go func() {
 		for range ticker.C {
-			now := time.Now()
+			now := time.Now().UTC()
 
-			// 24-Hour Reminders
-			targetStart24 := now.Add(24 * time.Hour).Add(-5 * time.Minute)
-			targetEnd24 := now.Add(24 * time.Hour)
+			targetStart := now.Add(-10 * time.Minute)
+			targetEnd := now.Add(10 * time.Minute)
 
-			var slots24 []models.Slot
-			config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, targetStart24, targetEnd24).Find(&slots24)
+			var slots []models.Slot
+			err := config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?",
+				models.StatusBooked, targetStart, targetEnd).Find(&slots).Error
 
-			for _, slot := range slots24 {
-				sendReminder(slot, userClient, rabbitMQ, "tomorrow")
+			if err != nil {
+				log.Printf("[Worker] DB Error: %v", err)
+				continue
 			}
 
-			// 2-Hour Reminders
-			//targetStart2 := now.Add(2 * time.Hour).Add(-5 * time.Minute)
-			//targetEnd2 := now.Add(2 * time.Hour)
-			targetStart1 := now
-			targetEnd1 := now.Add(10 * time.Minute)
-
-			var slots1 []models.Slot
-			config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, targetStart1, targetEnd1).Find(&slots1)
-
-			for _, slot := range slots1 {
-				sendReminder(slot, userClient, rabbitMQ, "in 2 hours")
+			if len(slots) > 0 {
+				log.Printf("[Worker] Found %d slots for reminders in current window", len(slots))
+				for _, slot := range slots {
+					sendReminder(slot, userClient, rabbitMQ, "upcoming")
+				}
 			}
 		}
 	}()
@@ -56,7 +50,6 @@ func sendReminder(slot models.Slot, userClient userprofile.UserProfileServiceCli
 	})
 
 	var studentEmail, psychName, telegramChatID string
-
 	if err == nil {
 		for _, p := range resp.Profiles {
 			if p.Id == *slot.StudentID {
@@ -66,7 +59,11 @@ func sendReminder(slot models.Slot, userClient userprofile.UserProfileServiceCli
 				psychName = p.FullName
 			}
 		}
+	} else {
+		log.Printf("[Worker] gRPC Error fetching profiles: %v", err)
 	}
+
+	log.Printf("[Worker] Preparing reminder for %s. TG ID: %s", studentEmail, telegramChatID)
 
 	if studentEmail != "" {
 		msg := clients.NotificationMessage{
@@ -80,6 +77,6 @@ func sendReminder(slot models.Slot, userClient userprofile.UserProfileServiceCli
 			},
 		}
 		rabbitMQ.PublishNotification(msg)
-		log.Printf("[Worker] Sent reminder for slot %s", slot.ID)
+		log.Printf("[Worker] Published reminder to RabbitMQ for slot %s", slot.ID)
 	}
 }

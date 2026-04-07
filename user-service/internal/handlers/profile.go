@@ -194,13 +194,12 @@ func (h *ProfileHandler) LogMood(c *gin.Context) {
 		return
 	}
 
-	today := time.Now().Format("2006-01-02")
 	score := getMoodScore(input.Mood)
 
 	moodLog := models.MoodLog{
 		ID:     uuid.NewString(),
 		UserID: userID,
-		Date:   today,
+		Date:   time.Now().Truncate(24 * time.Hour),
 		Mood:   input.Mood,
 		Score:  score,
 	}
@@ -250,10 +249,9 @@ func (h *ProfileHandler) GetMoodGraphic(c *gin.Context) {
 
 	var response []models.MoodGraphicResponse
 	for _, log := range logs {
-		parsedDate, _ := time.Parse("2006-01-02", log.Date)
 		response = append(response, models.MoodGraphicResponse{
-			Date:      log.Date,
-			DayOfWeek: parsedDate.Format("Mon"), // Returns "Mon", "Tue", etc.
+			Date:      log.Date.Format("2006-01-02"),
+			DayOfWeek: log.Date.Format("Mon"),
 			Mood:      log.Mood,
 			Score:     log.Score,
 		})

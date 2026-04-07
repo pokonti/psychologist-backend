@@ -18,7 +18,7 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 		api.GET("/me/mood/graphic", profileHandler.GetMoodGraphic)
 		api.POST("/me/avatar-url", profileHandler.GenerateUploadURL)
 	}
-	admin := api.Group("/admin")
+	admin := api.Group("/api/v1/admin")
 	{
 		admin.GET("/users", profileHandler.ListAllUsers)
 		admin.GET("/psychologists", profileHandler.GetAllPsychologists)

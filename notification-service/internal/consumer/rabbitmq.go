@@ -203,11 +203,18 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 
 		tgChatID := msg.Data["telegram_chat_id"]
 		if tgChatID != "" {
-			tgText := fmt.Sprintf("⏰ <b>Reminder!</b>\nYou have an appointment with %s tomorrow at %s.", msg.Data["psychologist_name"], msg.Data["datetime"])
+			log.Printf("[Consumer] Attempting to send Telegram message to %s", tgChatID)
+			tgText := fmt.Sprintf("⏰ <b>Reminder!</b>\nYou have an appointment with %s %s at %s.",
+				msg.Data["psychologist_name"], msg.Data["subject"], msg.Data["datetime"])
+
 			err := telegram.SendMessage(tgChatID, tgText)
 			if err != nil {
-				log.Printf("Failed to send Telegram reminder: %v", err)
+				log.Printf("[Consumer] Telegram API Error: %v", err)
+			} else {
+				log.Printf("[Consumer] Telegram reminder sent successfully to %s", tgChatID)
 			}
+		} else {
+			log.Printf("[Consumer] No Telegram ID found for reminder to %s", msg.ToEmail)
 		}
 
 	default:

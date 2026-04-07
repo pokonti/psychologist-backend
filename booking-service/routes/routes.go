@@ -43,14 +43,14 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 			student.DELETE("/waitlist/:id", h.LeaveWaitlist)
 			student.POST("/slots/:id/rate", h.RateSession)
 		}
-	}
 
-	admin := api.Group("/admin")
-	{
-		admin.GET("/bookings", h.GetAllBookings)
-		admin.POST("/bookings/:id/cancel", h.ForceCancelBooking)
-		admin.GET("/admin/dashboard", h.GetDashboard)
-		admin.GET("/reviews", h.GetAllReviews)
+		admin := api.Group("/admin")
+		{
+			admin.GET("/bookings", h.GetAllBookings)
+			admin.POST("/bookings/:id/cancel", h.ForceCancelBooking)
+			admin.GET("/admin/dashboard", h.GetDashboard)
+			admin.GET("/reviews", h.GetAllReviews)
+		}
 	}
 
 	// Swagger endpoint
