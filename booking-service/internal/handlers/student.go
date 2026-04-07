@@ -303,14 +303,15 @@ func (h *BookingHandler) ConfirmSlot(c *gin.Context) {
 			}
 		}
 
-		formattedDate := slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04")
+		loc := time.FixedZone("Asia/Almaty", 5*60*60)
+		localDateTime := slot.StartTime.In(loc).Format("Monday, 02 Jan 2006 at 15:04")
 
 		msg := clients.NotificationMessage{
 			Type:    "booking_confirmation",
 			ToEmail: studentEmail,
 			Data: map[string]string{
 				"psychologist_name": psychName,
-				"datetime":          formattedDate,
+				"datetime":          localDateTime,
 				"format":            slot.BookingType,
 				"start_time_raw":    slot.StartTime.Format(time.RFC3339),
 				"slot_id":           slot.ID,
@@ -517,13 +518,16 @@ func (h *BookingHandler) CancelAppointment(c *gin.Context) {
 			}
 		}
 
+		loc := time.FixedZone("Asia/Almaty", 5*60*60)
+		localDateTime := slot.StartTime.In(loc).Format("Monday, 02 Jan 2006 at 15:04")
+
 		if studentEmail != "" {
 			msg := clients.NotificationMessage{
 				Type:    "booking_cancellation",
 				ToEmail: studentEmail,
 				Data: map[string]string{
 					"psychologist_name": psychName,
-					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+					"datetime":          localDateTime,
 					"telegram_chat_id":  tgID,
 				},
 			}

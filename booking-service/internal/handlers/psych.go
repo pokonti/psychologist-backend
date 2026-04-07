@@ -468,13 +468,16 @@ func (h *BookingHandler) CancelBookingByPsychologist(c *gin.Context) {
 			}
 		}
 
+		loc := time.FixedZone("Asia/Almaty", 5*60*60)
+		localDateTime := slot.StartTime.In(loc).Format("Monday, 02 Jan 2006 at 15:04")
+
 		if studentEmail != "" {
 			msg := clients.NotificationMessage{
 				Type:    "booking_cancellation",
 				ToEmail: studentEmail,
 				Data: map[string]string{
 					"psychologist_name": psychName,
-					"datetime":          slot.StartTime.Format("Monday, 02 Jan 2006 at 15:04"),
+					"datetime":          localDateTime,
 					"cancelled_by":      "the psychologist",
 					"reason_topic":      input.ReasonTopic,
 					"reason_message":    input.ReasonMessage,
