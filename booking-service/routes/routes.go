@@ -48,7 +48,7 @@ func SetupRoutes(r *gin.Engine, h *handlers.BookingHandler) {
 		{
 			admin.GET("/bookings", h.GetAllBookings)
 			admin.POST("/bookings/:id/cancel", h.ForceCancelBooking)
-			admin.GET("/admin/dashboard", h.GetDashboard)
+			admin.GET("/dashboard", h.GetDashboard)
 			admin.GET("/reviews", h.GetAllReviews)
 		}
 	}
