@@ -9,19 +9,23 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
-	api := r.Group("/api/v1/users")
+	api := r.Group("/api/v1")
 	{
-		api.GET("/me", profileHandler.GetMyProfile)
-		api.PUT("/me", profileHandler.UpdateMyProfile)
-		api.GET("/psychologists", profileHandler.GetPublicPsychologists)
-		api.POST("/me/mood", profileHandler.LogMood)
-		api.GET("/me/mood/graphic", profileHandler.GetMoodGraphic)
-		api.POST("/me/avatar-url", profileHandler.GenerateUploadURL)
+		users := api.Group("/users")
+		{
+			users.GET("/me", profileHandler.GetMyProfile)
+			users.PUT("/me", profileHandler.UpdateMyProfile)
+			users.GET("/psychologists", profileHandler.GetPublicPsychologists)
+			users.POST("/me/mood", profileHandler.LogMood)
+			users.GET("/me/mood/graphic", profileHandler.GetMoodGraphic)
+			users.POST("/me/avatar-url", profileHandler.GenerateUploadURL)
+		}
+		admin := api.Group("/admin")
+		{
+			admin.GET("/users", profileHandler.ListAllUsers)
+			admin.GET("/psychologists", profileHandler.GetAllPsychologists)
+		}
 	}
-	admin := api.Group("/api/v1/admin")
-	{
-		admin.GET("/users", profileHandler.ListAllUsers)
-		admin.GET("/psychologists", profileHandler.GetAllPsychologists)
-	}
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
