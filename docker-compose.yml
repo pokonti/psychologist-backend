@@ -127,6 +127,7 @@ services:
       ZOOM_ACCOUNT_ID: ${ZOOM_ACCOUNT_ID}
       ZOOM_CLIENT_ID: ${ZOOM_CLIENT_ID}
       ZOOM_CLIENT_SECRET: ${ZOOM_CLIENT_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       BOOKING_SERVICE_GRPC_ADDR: "booking-service:${BOOKING_GRPC}"
     depends_on:
       rabbitmq:
