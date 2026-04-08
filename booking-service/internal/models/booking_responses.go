@@ -110,3 +110,25 @@ type AdminUserSessionResponse struct {
 	StudentName      string    `json:"student_name,omitempty"`
 	Rating           int       `json:"rating,omitempty"`
 }
+
+type DetailedPsychologistStats struct {
+	// Overview
+	TotalConducted    int64   `json:"total_conducted"`     // Successfully finished
+	TotalCancelled    int64   `json:"total_cancelled"`     // Total history of cancellations
+	CancellationRate  float64 `json:"cancellation_rate"`   // % of bookings that ended in cancellation
+	TotalWorkingHours float64 `json:"total_working_hours"` // Sum of duration for conducted sessions
+
+	// Breakdown
+	CancelledByStudent int64 `json:"cancelled_by_student"`
+	CancelledByPsych   int64 `json:"cancelled_by_psychologist"`
+	OnlineSessions     int64 `json:"online_sessions"`
+	OfflineSessions    int64 `json:"offline_sessions"`
+
+	// Student Impact
+	UniqueStudentsCount int64   `json:"unique_students_seen"`
+	AverageRating       float64 `json:"average_rating"`
+
+	// Time Context
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
+}

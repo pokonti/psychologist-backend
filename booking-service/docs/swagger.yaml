@@ -41,6 +41,27 @@ definitions:
       student_name:
         type: string
     type: object
+  models.AdminUserSessionResponse:
+    properties:
+      booking_type:
+        type: string
+      psychologist_id:
+        type: string
+      psychologist_name:
+        type: string
+      rating:
+        type: integer
+      slot_id:
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      student_id:
+        type: string
+      student_name:
+        type: string
+    type: object
   models.AnonymousReviewResponse:
     properties:
       month_year:
@@ -394,6 +415,34 @@ paths:
       summary: 'Admin: View all reviews'
       tags:
       - admin
+  /admin/users/{id}/sessions:
+    get:
+      description: Returns a history of all slots (available, reserved, booked) associated
+        with a specific user ID.
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AdminUserSessionResponse'
+            type: array
+        "403":
+          description: Admin access required
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: View all sessions for a specific user'
+      tags:
+      - admin
   /psychologist/reviews:
     get:
       description: Psychologist views their ratings and written reviews. Student identities
@@ -646,6 +695,27 @@ paths:
       security:
       - BearerAuth: []
       summary: Get psychologist dashboard statistics
+      tags:
+      - psychologist-slots
+  /psychologist/statistics/detailed:
+    get:
+      description: Calculates KPIs like cancellation rates, working hours, and student
+        reach within a date range.
+      parameters:
+      - description: Start Date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get comprehensive analytics for psychologist
       tags:
       - psychologist-slots
   /psychologist/students/{student_id}/history:

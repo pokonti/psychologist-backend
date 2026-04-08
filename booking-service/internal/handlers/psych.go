@@ -683,3 +683,87 @@ func (h *BookingHandler) GetPsychologistStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
+
+// GetDetailedPsychologistStats godoc
+// @Summary      Get comprehensive analytics for psychologist
+// @Description  Calculates KPIs like cancellation rates, working hours, and student reach within a date range.
+// @Tags         psychologist-slots
+// @Produce      json
+// @Security     BearerAuth
+// @Param        start_date query string false "Start Date (YYYY-MM-DD)"
+// @Param        end_date   query string false "End Date (YYYY-MM-DD)"
+// @Router       /psychologist/statistics/detailed [get]
+func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
+	psychID := c.GetHeader("X-User-ID")
+
+	// 1. Parse Date Range
+	startStr := c.Query("start_date")
+	endStr := c.Query("end_date")
+
+	var start, end time.Time
+	if startStr != "" {
+		start, _ = parseDate(startStr)
+	} else {
+		start = time.Now().AddDate(0, 0, -30)
+	}
+	if endStr != "" {
+		end, _ = parseDate(endStr)
+	} else {
+		end = time.Now()
+	}
+
+	var stats models.DetailedPsychologistStats
+	stats.StartDate = start.Format("2006-01-02")
+	stats.EndDate = end.Format("2006-01-02")
+
+	// --- SQL AGGREGATIONS ---
+
+	// 2. Conducted Sessions & Working Hours
+	// (Status is 'booked' and time is in the past)
+	var conductedDuration int64
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND start_time BETWEEN ? AND ?", psychID, models.StatusBooked, start, end).
+		Where("start_time < ?", time.Now()).
+		Count(&stats.TotalConducted).
+		Select("SUM(duration)").Scan(&conductedDuration)
+
+	stats.TotalWorkingHours = float64(conductedDuration) / 60.0
+
+	// 3. Unique Students Seen
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND student_id IS NOT NULL", psychID, models.StatusBooked).
+		Distinct("student_id").
+		Count(&stats.UniqueStudentsCount)
+
+	// 4. Format Breakdown
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND booking_type = ?", psychID, models.StatusBooked, "online").
+		Count(&stats.OnlineSessions)
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ? AND booking_type = ?", psychID, models.StatusBooked, "offline").
+		Count(&stats.OfflineSessions)
+
+	// 5. Cancellation Analytics (From LOGS table)
+	config.DB.Model(&models.BookingLog{}).
+		Where("psychologist_id = ? AND action = ? AND timestamp BETWEEN ? AND ?", psychID, "canceled_by_student", start, end).
+		Count(&stats.CancelledByStudent)
+
+	config.DB.Model(&models.BookingLog{}).
+		Where("psychologist_id = ? AND action = ? AND timestamp BETWEEN ? AND ?", psychID, "canceled_by_psychologist", start, end).
+		Count(&stats.CancelledByPsych)
+
+	stats.TotalCancelled = stats.CancelledByStudent + stats.CancelledByPsych
+
+	// 6. Rate Calculation
+	totalRequests := stats.TotalConducted + stats.TotalCancelled
+	if totalRequests > 0 {
+		stats.CancellationRate = (float64(stats.TotalCancelled) / float64(totalRequests)) * 100
+	}
+
+	// 7. Average Rating
+	config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND rating > 0", psychID).
+		Select("AVG(rating)").Scan(&stats.AverageRating)
+
+	c.JSON(http.StatusOK, stats)
+}

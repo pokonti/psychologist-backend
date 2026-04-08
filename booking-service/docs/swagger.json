@@ -158,6 +158,49 @@
                 }
             }
         },
+        "/admin/users/{id}/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a history of all slots (available, reserved, booked) associated with a specific user ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin: View all sessions for a specific user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AdminUserSessionResponse"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Admin access required",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/psychologist/reviews": {
             "get": {
                 "security": [
@@ -547,6 +590,38 @@
                         }
                     }
                 }
+            }
+        },
+        "/psychologist/statistics/detailed": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Calculates KPIs like cancellation rates, working hours, and student reach within a date range.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "psychologist-slots"
+                ],
+                "summary": "Get comprehensive analytics for psychologist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start Date (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
             }
         },
         "/psychologist/students/{student_id}/history": {
@@ -1337,6 +1412,38 @@
                     "type": "string"
                 },
                 "start_time": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "student_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AdminUserSessionResponse": {
+            "type": "object",
+            "properties": {
+                "booking_type": {
+                    "type": "string"
+                },
+                "psychologist_id": {
+                    "type": "string"
+                },
+                "psychologist_name": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "slot_id": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "student_id": {
