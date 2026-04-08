@@ -14,31 +14,6 @@ import (
 func StartReminderWorker(userClient userprofile.UserProfileServiceClient, rabbitMQ *clients.RabbitMQClient) {
 	ticker := time.NewTicker(30 * time.Second)
 
-	//	go func() {
-	//		for range ticker.C {
-	//			now := time.Now().UTC()
-	//
-	//			targetStart := now.Add(-10 * time.Minute)
-	//			targetEnd := now.Add(10 * time.Minute)
-	//
-	//			var slots []models.Slot
-	//			err := config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?",
-	//				models.StatusBooked, targetStart, targetEnd).Find(&slots).Error
-	//
-	//			if err != nil {
-	//				log.Printf("[Worker] DB Error: %v", err)
-	//				continue
-	//			}
-	//
-	//			if len(slots) > 0 {
-	//				log.Printf("[Worker] Found %d slots for reminders in current window", len(slots))
-	//				for _, slot := range slots {
-	//					sendReminder(slot, userClient, rabbitMQ, "upcoming")
-	//				}
-	//			}
-	//		}
-	//	}()
-	//}
 	go func() {
 		for range ticker.C {
 			now := time.Now()
@@ -48,7 +23,7 @@ func StartReminderWorker(userClient userprofile.UserProfileServiceClient, rabbit
 			targetEnd24 := now.Add(24 * time.Hour)
 
 			var slots24 []models.Slot
-			config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, targetStart24, targetEnd24).Find(&slots24)
+			config.DB.Where("status = ? AND reminder_sent = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, false, targetStart24, targetEnd24).Find(&slots24)
 
 			for _, slot := range slots24 {
 				sendReminder(slot, userClient, rabbitMQ, "tomorrow")
@@ -59,7 +34,7 @@ func StartReminderWorker(userClient userprofile.UserProfileServiceClient, rabbit
 			targetEnd2 := now.Add(2 * time.Hour)
 
 			var slots1 []models.Slot
-			config.DB.Where("status = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, targetStart2, targetEnd2).Find(&slots1)
+			config.DB.Where("status = ? AND reminder_sent = ? AND start_time >= ? AND start_time <= ?", models.StatusBooked, false, targetStart2, targetEnd2).Find(&slots1)
 
 			for _, slot := range slots1 {
 				sendReminder(slot, userClient, rabbitMQ, "in 2 hours")
@@ -109,5 +84,7 @@ func sendReminder(slot models.Slot, userClient userprofile.UserProfileServiceCli
 		}
 		rabbitMQ.PublishNotification(msg)
 		log.Printf("[Worker] Published reminder to RabbitMQ for slot %s", slot.ID)
+		config.DB.Model(&slot).Update("reminder_sent", true)
+		log.Printf("[Worker] Sent reminder and marked slot %s as reminded", slot.ID)
 	}
 }

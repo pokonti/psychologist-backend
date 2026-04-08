@@ -34,6 +34,8 @@ type Slot struct {
 
 	PhoneNumber string `gorm:"type:varchar(20)" json:"phone_number,omitempty"`
 
+	ReminderSent bool `gorm:"default:false" json:"reminder_sent"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Version   int       `gorm:"default:1" json:"-"`
