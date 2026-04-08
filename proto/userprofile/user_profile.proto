@@ -11,6 +11,7 @@ service UserProfileService {
   rpc GetBatchUserProfiles (GetBatchUserProfilesRequest) returns (GetBatchUserProfilesResponse);
   rpc UpdateUserPhone (UpdateUserPhoneRequest) returns (UpdateUserPhoneResponse);
   rpc UpdateUserTelegram (UpdateUserTelegramRequest) returns (UpdateUserTelegramResponse);
+  rpc UpdateUserBlockStatus (UpdateUserBlockStatusRequest) returns (UpdateUserBlockStatusResponse);
 }
 
 message CreateUserProfileRequest {
@@ -71,5 +72,15 @@ message UpdateUserTelegramRequest {
 }
 
 message UpdateUserTelegramResponse {
+  bool success = 1;
+}
+
+message UpdateUserBlockStatusRequest {
+  string id = 1;
+  bool is_blocked = 2;
+  string reason = 3;
+}
+
+message UpdateUserBlockStatusResponse {
   bool success = 1;
 }

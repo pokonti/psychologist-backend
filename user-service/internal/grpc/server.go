@@ -111,3 +111,19 @@ func (s *UserProfileServer) UpdateUserTelegram(ctx context.Context, req *userpro
 
 	return &userprofile.UpdateUserTelegramResponse{Success: true}, nil
 }
+
+func (s *UserProfileServer) UpdateUserBlockStatus(ctx context.Context, req *userprofile.UpdateUserBlockStatusRequest) (*userprofile.UpdateUserBlockStatusResponse, error) {
+	var profile models.UserProfile
+	if err, _ := s.Repo.GetByID(ctx, req.Id); err != nil {
+		return nil, status.Error(codes.NotFound, "profile not found")
+	}
+
+	profile.IsBlocked = req.IsBlocked
+	profile.BlockReason = req.Reason
+
+	if err := s.Repo.Update(ctx, &profile); err != nil {
+		return nil, status.Error(codes.Internal, "failed to update block status")
+	}
+
+	return &userprofile.UpdateUserBlockStatusResponse{Success: true}, nil
+}

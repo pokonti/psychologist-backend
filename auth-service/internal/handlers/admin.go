@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -111,6 +112,15 @@ func (ac *AuthController) AdminBlockUser(c *gin.Context) {
 	if res.Error != nil || res.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "User not found"})
 		return
+	}
+
+	_, err := ac.UserClient.UpdateUserBlockStatus(c.Request.Context(), &userprofile.UpdateUserBlockStatusRequest{
+		Id:        userID,
+		IsBlocked: input.Blocked,
+		Reason:    input.Reason,
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to sync block status to user-service: %v", err)
 	}
 
 	status := "unblocked"

@@ -271,7 +271,8 @@ func (ac *AuthController) RefreshToken(c *gin.Context) {
 	}
 
 	if user.IsBlocked {
-		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Account is blocked"})
+		config.DB.Model(&user).Update("refresh_token", "")
+		c.JSON(http.StatusForbidden, gin.H{"error": "Account blocked. Access revoked."})
 		return
 	}
 

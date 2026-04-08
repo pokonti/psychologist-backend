@@ -626,6 +626,110 @@ func (x *UpdateUserTelegramResponse) GetSuccess() bool {
 	return false
 }
 
+type UpdateUserBlockStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	IsBlocked     bool                   `protobuf:"varint,2,opt,name=is_blocked,json=isBlocked,proto3" json:"is_blocked,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserBlockStatusRequest) Reset() {
+	*x = UpdateUserBlockStatusRequest{}
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserBlockStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserBlockStatusRequest) ProtoMessage() {}
+
+func (x *UpdateUserBlockStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserBlockStatusRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserBlockStatusRequest) Descriptor() ([]byte, []int) {
+	return file_proto_userprofile_user_profile_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UpdateUserBlockStatusRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateUserBlockStatusRequest) GetIsBlocked() bool {
+	if x != nil {
+		return x.IsBlocked
+	}
+	return false
+}
+
+func (x *UpdateUserBlockStatusRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type UpdateUserBlockStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserBlockStatusResponse) Reset() {
+	*x = UpdateUserBlockStatusResponse{}
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserBlockStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserBlockStatusResponse) ProtoMessage() {}
+
+func (x *UpdateUserBlockStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userprofile_user_profile_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserBlockStatusResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserBlockStatusResponse) Descriptor() ([]byte, []int) {
+	return file_proto_userprofile_user_profile_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UpdateUserBlockStatusResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_proto_userprofile_user_profile_proto protoreflect.FileDescriptor
 
 const file_proto_userprofile_user_profile_proto_rawDesc = "" +
@@ -667,13 +771,21 @@ const file_proto_userprofile_user_profile_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\x10telegram_chat_id\x18\x02 \x01(\tR\x0etelegramChatId\"6\n" +
 	"\x1aUpdateUserTelegramResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x91\x04\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"e\n" +
+	"\x1cUpdateUserBlockStatusRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"is_blocked\x18\x02 \x01(\bR\tisBlocked\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"9\n" +
+	"\x1dUpdateUserBlockStatusResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x81\x05\n" +
 	"\x12UserProfileService\x12b\n" +
 	"\x11CreateUserProfile\x12%.userprofile.CreateUserProfileRequest\x1a&.userprofile.CreateUserProfileResponse\x12e\n" +
 	"\x12GetUserProfileByID\x12&.userprofile.GetUserProfileByIDRequest\x1a'.userprofile.GetUserProfileByIDResponse\x12k\n" +
 	"\x14GetBatchUserProfiles\x12(.userprofile.GetBatchUserProfilesRequest\x1a).userprofile.GetBatchUserProfilesResponse\x12\\\n" +
 	"\x0fUpdateUserPhone\x12#.userprofile.UpdateUserPhoneRequest\x1a$.userprofile.UpdateUserPhoneResponse\x12e\n" +
-	"\x12UpdateUserTelegram\x12&.userprofile.UpdateUserTelegramRequest\x1a'.userprofile.UpdateUserTelegramResponseBGZEgithub.com/pokonti/psychologist-backend/proto/userprofile;userprofileb\x06proto3"
+	"\x12UpdateUserTelegram\x12&.userprofile.UpdateUserTelegramRequest\x1a'.userprofile.UpdateUserTelegramResponse\x12n\n" +
+	"\x15UpdateUserBlockStatus\x12).userprofile.UpdateUserBlockStatusRequest\x1a*.userprofile.UpdateUserBlockStatusResponseBGZEgithub.com/pokonti/psychologist-backend/proto/userprofile;userprofileb\x06proto3"
 
 var (
 	file_proto_userprofile_user_profile_proto_rawDescOnce sync.Once
@@ -687,19 +799,21 @@ func file_proto_userprofile_user_profile_proto_rawDescGZIP() []byte {
 	return file_proto_userprofile_user_profile_proto_rawDescData
 }
 
-var file_proto_userprofile_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_userprofile_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_userprofile_user_profile_proto_goTypes = []any{
-	(*CreateUserProfileRequest)(nil),     // 0: userprofile.CreateUserProfileRequest
-	(*CreateUserProfileResponse)(nil),    // 1: userprofile.CreateUserProfileResponse
-	(*GetUserProfileByIDRequest)(nil),    // 2: userprofile.GetUserProfileByIDRequest
-	(*GetUserProfileByIDResponse)(nil),   // 3: userprofile.GetUserProfileByIDResponse
-	(*GetBatchUserProfilesRequest)(nil),  // 4: userprofile.GetBatchUserProfilesRequest
-	(*BasicUserProfile)(nil),             // 5: userprofile.BasicUserProfile
-	(*GetBatchUserProfilesResponse)(nil), // 6: userprofile.GetBatchUserProfilesResponse
-	(*UpdateUserPhoneRequest)(nil),       // 7: userprofile.UpdateUserPhoneRequest
-	(*UpdateUserPhoneResponse)(nil),      // 8: userprofile.UpdateUserPhoneResponse
-	(*UpdateUserTelegramRequest)(nil),    // 9: userprofile.UpdateUserTelegramRequest
-	(*UpdateUserTelegramResponse)(nil),   // 10: userprofile.UpdateUserTelegramResponse
+	(*CreateUserProfileRequest)(nil),      // 0: userprofile.CreateUserProfileRequest
+	(*CreateUserProfileResponse)(nil),     // 1: userprofile.CreateUserProfileResponse
+	(*GetUserProfileByIDRequest)(nil),     // 2: userprofile.GetUserProfileByIDRequest
+	(*GetUserProfileByIDResponse)(nil),    // 3: userprofile.GetUserProfileByIDResponse
+	(*GetBatchUserProfilesRequest)(nil),   // 4: userprofile.GetBatchUserProfilesRequest
+	(*BasicUserProfile)(nil),              // 5: userprofile.BasicUserProfile
+	(*GetBatchUserProfilesResponse)(nil),  // 6: userprofile.GetBatchUserProfilesResponse
+	(*UpdateUserPhoneRequest)(nil),        // 7: userprofile.UpdateUserPhoneRequest
+	(*UpdateUserPhoneResponse)(nil),       // 8: userprofile.UpdateUserPhoneResponse
+	(*UpdateUserTelegramRequest)(nil),     // 9: userprofile.UpdateUserTelegramRequest
+	(*UpdateUserTelegramResponse)(nil),    // 10: userprofile.UpdateUserTelegramResponse
+	(*UpdateUserBlockStatusRequest)(nil),  // 11: userprofile.UpdateUserBlockStatusRequest
+	(*UpdateUserBlockStatusResponse)(nil), // 12: userprofile.UpdateUserBlockStatusResponse
 }
 var file_proto_userprofile_user_profile_proto_depIdxs = []int32{
 	5,  // 0: userprofile.GetBatchUserProfilesResponse.profiles:type_name -> userprofile.BasicUserProfile
@@ -708,13 +822,15 @@ var file_proto_userprofile_user_profile_proto_depIdxs = []int32{
 	4,  // 3: userprofile.UserProfileService.GetBatchUserProfiles:input_type -> userprofile.GetBatchUserProfilesRequest
 	7,  // 4: userprofile.UserProfileService.UpdateUserPhone:input_type -> userprofile.UpdateUserPhoneRequest
 	9,  // 5: userprofile.UserProfileService.UpdateUserTelegram:input_type -> userprofile.UpdateUserTelegramRequest
-	1,  // 6: userprofile.UserProfileService.CreateUserProfile:output_type -> userprofile.CreateUserProfileResponse
-	3,  // 7: userprofile.UserProfileService.GetUserProfileByID:output_type -> userprofile.GetUserProfileByIDResponse
-	6,  // 8: userprofile.UserProfileService.GetBatchUserProfiles:output_type -> userprofile.GetBatchUserProfilesResponse
-	8,  // 9: userprofile.UserProfileService.UpdateUserPhone:output_type -> userprofile.UpdateUserPhoneResponse
-	10, // 10: userprofile.UserProfileService.UpdateUserTelegram:output_type -> userprofile.UpdateUserTelegramResponse
-	6,  // [6:11] is the sub-list for method output_type
-	1,  // [1:6] is the sub-list for method input_type
+	11, // 6: userprofile.UserProfileService.UpdateUserBlockStatus:input_type -> userprofile.UpdateUserBlockStatusRequest
+	1,  // 7: userprofile.UserProfileService.CreateUserProfile:output_type -> userprofile.CreateUserProfileResponse
+	3,  // 8: userprofile.UserProfileService.GetUserProfileByID:output_type -> userprofile.GetUserProfileByIDResponse
+	6,  // 9: userprofile.UserProfileService.GetBatchUserProfiles:output_type -> userprofile.GetBatchUserProfilesResponse
+	8,  // 10: userprofile.UserProfileService.UpdateUserPhone:output_type -> userprofile.UpdateUserPhoneResponse
+	10, // 11: userprofile.UserProfileService.UpdateUserTelegram:output_type -> userprofile.UpdateUserTelegramResponse
+	12, // 12: userprofile.UserProfileService.UpdateUserBlockStatus:output_type -> userprofile.UpdateUserBlockStatusResponse
+	7,  // [7:13] is the sub-list for method output_type
+	1,  // [1:7] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -731,7 +847,7 @@ func file_proto_userprofile_user_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_userprofile_user_profile_proto_rawDesc), len(file_proto_userprofile_user_profile_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

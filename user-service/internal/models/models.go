@@ -24,6 +24,8 @@ type UserProfile struct {
 	Rating         float32   `json:"rating"`
 	RatingCount    int       `json:"rating_count"`
 	TelegramChatID string    `json:"telegram_chat_id"`
+	IsBlocked      bool      `gorm:"default:false" json:"is_blocked"`
+	BlockReason    string    `gorm:"type:text" json:"block_reason,omitempty"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
