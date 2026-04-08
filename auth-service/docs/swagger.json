@@ -11,7 +11,7 @@
         "version": "1.0"
     },
     "host": "api.kbtucare.site",
-    "basePath": "/api/v1/auth",
+    "basePath": "/api/v1",
     "paths": {
         "/admin/users": {
             "post": {

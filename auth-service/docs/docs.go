@@ -452,7 +452,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "api.kbtucare.site",
-	BasePath:         "/api/v1/auth",
+	BasePath:         "/api/v1",
 	Schemes:          []string{"https", "http"},
 	Title:            "Auth Service API",
 	Description:      "This is the authentication service for the Psychologist Backend.",
