@@ -18,6 +18,9 @@ import (
 // @host            api.kbtucare.site
 // @schemes         https http
 // @BasePath        /api/v1/auth
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
