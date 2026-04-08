@@ -7,6 +7,9 @@ type UpdateProfileRequest struct {
 	Bio            *string `json:"bio" binding:"omitempty"`
 	AvatarURL      *string `json:"avatar_url" binding:"omitempty"`
 	Phone          *string `json:"phone" binding:"omitempty"`
+	Experience     *int    `json:"experience" binding:"omitempty"`
+	Description    *string `json:"description" binding:"omitempty"`
+	BirthDate      *string `json:"birth_date" binding:"omitempty" example:"2000-01-01"`
 }
 
 // PublicPsychologistResponse represents the safe public profile of a psychologist
@@ -15,10 +18,10 @@ type PublicPsychologistResponse struct {
 	FullName       string  `json:"full_name"`
 	Gender         string  `json:"gender"`
 	Bio            string  `json:"bio"`
-	Specialization string  `json:"specialization,omitempty"`
+	Specialization string  `json:"specialization"`
 	AvatarURL      string  `json:"avatar_url"`
-	Experience     int     `json:"experience,omitempty"`
-	Description    string  `json:"description,omitempty"`
+	Experience     int     `json:"experience"`
+	Description    string  `json:"description"`
 	Rating         float32 `json:"rating"`
 }
 

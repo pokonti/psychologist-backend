@@ -123,6 +123,20 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 	if req.Phone != nil {
 		profile.Phone = *req.Phone
 	}
+	if req.Experience != nil {
+		profile.Experience = *req.Experience
+	}
+	if req.Description != nil {
+		profile.Description = *req.Description
+	}
+	if req.BirthDate != nil {
+		parsedDate, err := time.Parse("2006-01-02", *req.BirthDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Invalid birth_date format. Use YYYY-MM-DD"})
+			return
+		}
+		profile.BirthDate = parsedDate
+	}
 
 	if err := h.Repo.Update(c.Request.Context(), profile); err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{

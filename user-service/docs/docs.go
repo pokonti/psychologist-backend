@@ -470,6 +470,16 @@ const docTemplate = `{
                 "bio": {
                     "type": "string"
                 },
+                "birth_date": {
+                    "type": "string",
+                    "example": "2000-01-01"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "experience": {
+                    "type": "integer"
+                },
                 "full_name": {
                     "type": "string"
                 },
