@@ -452,6 +452,9 @@
                 "birth_date": {
                     "type": "string"
                 },
+                "block_reason": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -472,6 +475,9 @@
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_blocked": {
+                    "type": "boolean"
                 },
                 "password": {
                     "type": "string"

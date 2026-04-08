@@ -454,6 +454,9 @@ const docTemplate = `{
                 "birth_date": {
                     "type": "string"
                 },
+                "block_reason": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -474,6 +477,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_blocked": {
+                    "type": "boolean"
                 },
                 "password": {
                     "type": "string"

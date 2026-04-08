@@ -103,6 +103,8 @@ definitions:
         type: string
       birth_date:
         type: string
+      block_reason:
+        type: string
       created_at:
         type: string
       description:
@@ -117,6 +119,8 @@ definitions:
         type: string
       id:
         type: string
+      is_blocked:
+        type: boolean
       password:
         type: string
       phone_number:
