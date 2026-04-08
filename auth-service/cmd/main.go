@@ -17,7 +17,7 @@ import (
 // @description     This is the authentication service for the Psychologist Backend.
 // @host            api.kbtucare.site
 // @schemes         https http
-// @BasePath        /api/v1/auth
+// @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
