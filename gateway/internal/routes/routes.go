@@ -11,6 +11,9 @@ func SetupRoutes(r *gin.Engine) {
 
 	api.Use(middleware.SetupRateLimiter())
 
+	api.GET("/users/psychologists", proxy.Forward("http://user-service:8081"))
+	api.GET("/users/psychologists/:id", proxy.Forward("http://user-service:8081"))
+
 	authGroup := api.Group("/auth", middleware.SetupAuthLimiter())
 	{
 		authGroup.POST("/register", proxy.Forward("http://auth-service:8083"))
@@ -23,7 +26,6 @@ func SetupRoutes(r *gin.Engine) {
 	protected := api.Group("", middleware.JWTAuth())
 	protected.GET("/users/me", proxy.Forward("http://user-service:8081"))
 	protected.PUT("/users/me", proxy.Forward("http://user-service:8081"))
-	protected.GET("/users/psychologists", proxy.Forward("http://user-service:8081"))
 	protected.POST("/users/me/mood", proxy.Forward("http://user-service:8081"))
 	protected.GET("/users/me/mood/graphic", proxy.Forward("http://user-service:8081"))
 	protected.GET("/slots", proxy.Forward("http://booking-service:8084"))

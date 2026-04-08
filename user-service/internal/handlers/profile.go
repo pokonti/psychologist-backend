@@ -174,6 +174,39 @@ func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 	c.JSON(http.StatusOK, publicProfiles)
 }
 
+// GetPsychologistByID godoc
+// @Summary      Get details of a specific psychologist
+// @Description  Returns the safe public profile of a psychologist by their ID.
+// @Tags         users
+// @Produce      json
+// @Param        id   path      string  true  "Psychologist ID (UUID)"
+// @Success      200  {object}  models.PublicPsychologistResponse
+// @Failure      404  {object}  models.ErrorResponse "Not found"
+// @Router       /users/psychologists/{id} [get]
+func (h *ProfileHandler) GetPsychologistByID(c *gin.Context) {
+	targetID := c.Param("id")
+
+	profile, err := h.Repo.GetByID(c.Request.Context(), targetID)
+	if err != nil || profile.Role != "psychologist" {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "Psychologist not found"})
+		return
+	}
+
+	response := models.PublicPsychologistResponse{
+		ID:             profile.ID,
+		FullName:       profile.FullName,
+		Gender:         profile.Gender,
+		Bio:            profile.Bio,
+		Specialization: profile.Specialization,
+		AvatarURL:      profile.AvatarURL,
+		Experience:     profile.Experience,
+		Description:    profile.Description,
+		Rating:         profile.Rating,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // LogMood godoc
 // @Summary      Log daily mood
 // @Description  Student selects how they are feeling today. Updates the existing entry if already logged today.

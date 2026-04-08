@@ -342,6 +342,41 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/psychologists/{id}": {
+            "get": {
+                "description": "Returns the safe public profile of a psychologist by their ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get details of a specific psychologist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Psychologist ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PublicPsychologistResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {

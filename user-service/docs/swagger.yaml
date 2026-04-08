@@ -361,6 +361,29 @@ paths:
       summary: List psychologists for booking
       tags:
       - users
+  /users/psychologists/{id}:
+    get:
+      description: Returns the safe public profile of a psychologist by their ID.
+      parameters:
+      - description: Psychologist ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PublicPsychologistResponse'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get details of a specific psychologist
+      tags:
+      - users
 schemes:
 - https
 - http
