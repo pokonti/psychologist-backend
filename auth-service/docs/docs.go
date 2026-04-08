@@ -108,7 +108,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/login": {
+        "/auth/login": {
             "post": {
                 "description": "Authenticates user and returns JWT",
                 "consumes": [
@@ -154,7 +154,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout": {
+        "/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -169,7 +169,7 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/refresh": {
+        "/auth/refresh": {
             "post": {
                 "description": "Uses a valid refresh token to generate a new 15-minute access token. Implements Refresh Token Rotation (returns a new refresh token too).",
                 "consumes": [
@@ -209,7 +209,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/register": {
+        "/auth/register": {
             "post": {
                 "description": "Creates a user in Auth DB, sends verification email, and creates profile in User Service",
                 "consumes": [
@@ -261,7 +261,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/verify": {
+        "/auth/verify": {
             "post": {
                 "description": "Verifies the 6-digit code sent to email",
                 "consumes": [

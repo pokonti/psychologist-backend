@@ -31,7 +31,7 @@ type AuthController struct {
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      409  {object}  models.ErrorResponse "User already exists"
 // @Failure      500  {object}  models.ErrorResponse
-// @Router       /register [post]
+// @Router       /auth/register [post]
 func (ac *AuthController) Register(c *gin.Context) {
 	var input models.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -148,7 +148,7 @@ func (ac *AuthController) Register(c *gin.Context) {
 // @Success      200  {object}  models.TokenResponse
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      401  {object}  models.ErrorResponse "Invalid Code"
-// @Router       /verify [post]
+// @Router       /auth/verify [post]
 func (ac *AuthController) VerifyEmail(c *gin.Context) {
 	var input models.VerifyInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -200,7 +200,7 @@ func (ac *AuthController) VerifyEmail(c *gin.Context) {
 // @Success      200  {object}  models.TokenResponse
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      401  {object}  models.ErrorResponse
-// @Router       /login [post]
+// @Router       /auth/login [post]
 func (ac *AuthController) Login(c *gin.Context) {
 	var input models.LoginInput
 
@@ -255,7 +255,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 // @Param        request body models.RefreshInput true "Refresh Token"
 // @Success      200 {object} models.TokenResponse
 // @Failure      401 {object} models.ErrorResponse "Invalid or expired refresh token"
-// @Router       /refresh [post]
+// @Router       /auth/refresh [post]
 func (ac *AuthController) RefreshToken(c *gin.Context) {
 	var input models.RefreshInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -292,7 +292,7 @@ func (ac *AuthController) RefreshToken(c *gin.Context) {
 // @Description  Revokes the refresh token, forcing the user to log in again once their access token expires.
 // @Tags         auth
 // @Security     BearerAuth
-// @Router       /logout [post]
+// @Router       /auth/logout [post]
 func (ac *AuthController) Logout(c *gin.Context) {
 	userID := c.GetHeader("X-User-ID")
 

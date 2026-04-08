@@ -152,7 +152,7 @@ paths:
       summary: 'Admin: Block or Unblock a user'
       tags:
       - admin
-  /login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -182,7 +182,7 @@ paths:
       summary: Login User
       tags:
       - auth
-  /logout:
+  /auth/logout:
     post:
       description: Revokes the refresh token, forcing the user to log in again once
         their access token expires.
@@ -192,7 +192,7 @@ paths:
       summary: Logout user
       tags:
       - auth
-  /refresh:
+  /auth/refresh:
     post:
       consumes:
       - application/json
@@ -219,7 +219,7 @@ paths:
       summary: Get a new access token
       tags:
       - auth
-  /register:
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -254,7 +254,7 @@ paths:
       summary: Register a new user
       tags:
       - auth
-  /verify:
+  /auth/verify:
     post:
       consumes:
       - application/json
