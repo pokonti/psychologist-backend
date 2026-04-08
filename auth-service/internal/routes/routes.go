@@ -11,15 +11,18 @@ func SetupRoutes(r *gin.Engine, authController *handlers.AuthController) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := r.Group("/api/v1/auth")
-	api.POST("/register", authController.Register)
-	api.POST("/verify", authController.VerifyEmail)
-	api.POST("/login", authController.Login)
-	api.POST("/refresh", authController.RefreshToken)
-	api.POST("/logout", authController.Logout)
-
-	admin := r.Group("/api/v1/admin")
 	{
-		admin.POST("/users", authController.AdminAddUser)
-		admin.PATCH("/users/:id/block", authController.AdminBlockUser)
+		api.POST("/register", authController.Register)
+		api.POST("/verify", authController.VerifyEmail)
+		api.POST("/login", authController.Login)
+		api.POST("/refresh", authController.RefreshToken)
+		api.POST("/logout", authController.Logout)
+
+		admin := r.Group("/admin")
+		{
+			admin.POST("/users", authController.AdminAddUser)
+			admin.PATCH("/users/:id/block", authController.AdminBlockUser)
+		}
 	}
+
 }
