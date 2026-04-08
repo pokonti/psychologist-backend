@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 	"github.com/pokonti/psychologist-backend/user-service/internal/models"
@@ -113,16 +114,18 @@ func (s *UserProfileServer) UpdateUserTelegram(ctx context.Context, req *userpro
 }
 
 func (s *UserProfileServer) UpdateUserBlockStatus(ctx context.Context, req *userprofile.UpdateUserBlockStatusRequest) (*userprofile.UpdateUserBlockStatusResponse, error) {
-	var profile models.UserProfile
-	if err, _ := s.Repo.GetByID(ctx, req.Id); err != nil {
-		return nil, status.Error(codes.NotFound, "profile not found")
+	profile, err := s.Repo.GetByID(ctx, req.Id)
+	if err != nil {
+		log.Printf("gRPC Error: Could not find profile with ID [%s]", req.Id)
+		return nil, status.Error(codes.NotFound, "Profile not found")
 	}
 
 	profile.IsBlocked = req.IsBlocked
 	profile.BlockReason = req.Reason
 
-	if err := s.Repo.Update(ctx, &profile); err != nil {
-		return nil, status.Error(codes.Internal, "failed to update block status")
+	err = s.Repo.Update(ctx, profile)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to update profile")
 	}
 
 	return &userprofile.UpdateUserBlockStatusResponse{Success: true}, nil
