@@ -1,0 +1,71 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "cloudfare" ]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      user: ${{ steps.filter.outputs.user }}
+      booking: ${{ steps.filter.outputs.booking }}
+      notification: ${{ steps.filter.outputs.notification }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth: 
+              - 'auth-service/**'
+              - 'proto/**'
+            user: 
+              - 'user-service/**'
+              - 'proto/**'
+            booking: 
+              - 'booking-service/**'
+              - 'proto/**'
+            notification: 
+              - 'notification-service/**'
+              - 'proto/**'
+            gateway: 
+              - 'gateway/**'
+
+  deploy:
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/psychologist-backend
+            git pull origin main
+
+            # Function to deploy a service if it changed
+            deploy_service() {
+              SERVICE_NAME=$1
+              CHANGED=$2
+              if [ "$CHANGED" == "true" ]; then
+                echo "Deploying updated service: $SERVICE_NAME"
+                docker compose up --build -d $SERVICE_NAME
+              else
+                echo "No changes detected for $SERVICE_NAME. Skipping."
+              fi
+            }
+
+            # Run deployment checks
+            deploy_service "auth-service" "${{ needs.changes.outputs.auth }}"
+            deploy_service "user-service" "${{ needs.changes.outputs.user }}"
+            deploy_service "booking-service" "${{ needs.changes.outputs.booking }}"
+            deploy_service "notification-service" "${{ needs.changes.outputs.notification }}"
+            deploy_service "gateway" "${{ needs.changes.outputs.gateway }}"
+
+            # Optional: Clean up old images to save space
+            docker image prune -f
