@@ -98,3 +98,15 @@ type PsychologistStats struct {
 	MostCommonBooking string  `json:"most_common_booking"` // "online" or "offline"
 	SessionsThisMonth int64   `json:"sessions_this_month"`
 }
+
+type AdminUserSessionResponse struct {
+	ID               string    `json:"slot_id"`
+	StartTime        time.Time `json:"start_time"`
+	Status           string    `json:"status"`
+	BookingType      string    `json:"booking_type"`
+	PsychologistID   string    `json:"psychologist_id"`
+	PsychologistName string    `json:"psychologist_name"`
+	StudentID        string    `json:"student_id,omitempty"`
+	StudentName      string    `json:"student_name,omitempty"`
+	Rating           int       `json:"rating,omitempty"`
+}

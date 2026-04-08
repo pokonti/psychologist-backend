@@ -24,6 +24,7 @@ func SetupRoutes(r *gin.Engine, profileHandler *handlers.ProfileHandler) {
 		{
 			admin.GET("/users", profileHandler.ListAllUsers)
 			admin.GET("/psychologists", profileHandler.GetAllPsychologists)
+			admin.GET("/users/:id", profileHandler.AdminGetUserDetails)
 		}
 	}
 

@@ -233,3 +233,81 @@ func (h *BookingHandler) GetAllReviews(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// AdminGetUserSessions godoc
+// @Summary      Admin: View all sessions for a specific user
+// @Description  Returns a history of all slots (available, reserved, booked) associated with a specific user ID.
+// @Tags         admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      string  true  "User ID (UUID)"
+// @Success      200  {array}   models.AdminUserSessionResponse
+// @Failure      403  {object}  models.ErrorResponse "Admin access required"
+// @Router       /admin/users/{id}/sessions [get]
+func (h *BookingHandler) AdminGetUserSessions(c *gin.Context) {
+	if c.GetHeader("X-User-Role") != "admin" {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Admin access required"})
+		return
+	}
+
+	targetID := c.Param("id")
+
+	// 1. Find slots where this user is the Psychologist OR the Student
+	var slots []models.Slot
+	if err := config.DB.
+		Where("psychologist_id = ? OR student_id = ?", targetID, targetID).
+		Order("start_time desc").
+		Find(&slots).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Database error"})
+		return
+	}
+
+	if len(slots) == 0 {
+		c.JSON(http.StatusOK, []models.AdminUserSessionResponse{})
+		return
+	}
+
+	// 2. Collect IDs for gRPC Name Enrichment
+	var userIDs []string
+	uniqueIDs := make(map[string]bool)
+	for _, s := range slots {
+		if !uniqueIDs[s.PsychologistID] {
+			uniqueIDs[s.PsychologistID] = true
+			userIDs = append(userIDs, s.PsychologistID)
+		}
+		if s.StudentID != nil && !uniqueIDs[*s.StudentID] {
+			uniqueIDs[*s.StudentID] = true
+			userIDs = append(userIDs, *s.StudentID)
+		}
+	}
+
+	// 3. Fetch names from User Service
+	userMap := make(map[string]string)
+	resp, err := h.UserClient.GetBatchUserProfiles(c.Request.Context(), &userprofile.GetBatchUserProfilesRequest{Ids: userIDs})
+	if err == nil {
+		for _, p := range resp.Profiles {
+			userMap[p.Id] = p.FullName
+		}
+	}
+
+	// 4. Build Response
+	var response []models.AdminUserSessionResponse
+	for _, s := range slots {
+		res := models.AdminUserSessionResponse{
+			ID:               s.ID,
+			StartTime:        s.StartTime,
+			Status:           s.Status,
+			BookingType:      s.BookingType,
+			PsychologistID:   s.PsychologistID,
+			PsychologistName: userMap[s.PsychologistID],
+			Rating:           s.Rating,
+		}
+		if s.StudentID != nil {
+			res.StudentID = *s.StudentID
+			res.StudentName = userMap[*s.StudentID]
+		}
+		response = append(response, res)
+	}
+
+	c.JSON(http.StatusOK, response)
+}

@@ -70,6 +70,8 @@ func SetupRoutes(r *gin.Engine) {
 		adminOnly.GET("/users", proxy.Forward("http://user-service:8081"))
 		adminOnly.GET("/psychologists", proxy.Forward("http://user-service:8081"))
 		adminOnly.GET("/reviews", proxy.Forward("http://booking-service:8084"))
+		adminOnly.GET("/users/:id", proxy.Forward("http://user-service:8081"))
+		adminOnly.GET("/users/:id/sessions", proxy.Forward("http://booking-service:8084"))
 	}
 
 	// Proxy Swagger UIs

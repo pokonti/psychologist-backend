@@ -168,6 +168,36 @@ paths:
       summary: 'Admin: List all users'
       tags:
       - admin
+  /admin/users/{id}:
+    get:
+      description: Allows admin to see the full profile details of any user, including
+        sensitive data.
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserProfile'
+        "403":
+          description: Admin access required
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: View specific user profile'
+      tags:
+      - admin
   /users/me:
     get:
       description: Returns the profile of the currently authenticated user. In production,
@@ -328,8 +358,6 @@ paths:
           description: database error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: List psychologists for booking
       tags:
       - users

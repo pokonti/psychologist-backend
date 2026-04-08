@@ -141,7 +141,6 @@ func (h *ProfileHandler) UpdateMyProfile(c *gin.Context) {
 // @Produce      json
 // @Success      200  {array}   models.PublicPsychologistResponse
 // @Failure      500  {object}  models.ErrorResponse "database error"
-// @Security     BearerAuth
 // @Router       /users/psychologists [get]
 func (h *ProfileHandler) GetPublicPsychologists(c *gin.Context) {
 	profiles, err := h.Repo.GetAllPsychologists(c.Request.Context())
