@@ -33,6 +33,13 @@ definitions:
       error:
         type: string
     type: object
+  models.ForgotPasswordInput:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   models.LoginInput:
     properties:
       email:
@@ -69,6 +76,20 @@ definitions:
     - email
     - password
     - role
+    type: object
+  models.ResetPasswordInput:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+    required:
+    - code
+    - email
+    - new_password
     type: object
   models.TokenResponse:
     properties:
@@ -152,6 +173,33 @@ paths:
       summary: 'Admin: Block or Unblock a user'
       tags:
       - admin
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Triggers a 6-digit verification code to be sent to the user's email
+        via the Notification Service.
+      parameters:
+      - description: User email for reset
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ForgotPasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success message (always returned for security)
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid email format
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Request a password reset code
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -252,6 +300,41 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       summary: Register a new user
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Updates the account password after verifying the 6-digit reset
+        code and email combination.
+      parameters:
+      - description: Email, code, and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ResetPasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: Invalid input or short password
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Invalid or expired reset code
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Reset password using code
       tags:
       - auth
   /auth/verify:

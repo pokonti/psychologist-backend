@@ -20,6 +20,8 @@ func SetupRoutes(r *gin.Engine) {
 		authGroup.POST("/login", proxy.Forward("http://auth-service:8083"))
 		authGroup.POST("/verify", proxy.Forward("http://auth-service:8083"))
 		authGroup.POST("/refresh", proxy.Forward("http://auth-service:8083"))
+		authGroup.POST("/forgot-password", proxy.Forward("http://auth-service:8083"))
+		authGroup.POST("/reset-password", proxy.Forward("http://auth-service:8083"))
 	}
 
 	// Protected routes

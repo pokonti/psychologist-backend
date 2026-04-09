@@ -216,6 +216,14 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 		} else {
 			log.Printf("[Consumer] No Telegram ID found for reminder to %s", msg.ToEmail)
 		}
+	case "password_reset":
+		subject = "Reset your KBTU Care Password 🔑"
+		htmlBody = fmt.Sprintf(`
+			<h2>Password Reset Request</h2>
+			<p>We received a request to reset your password.</p>
+			<p>Your 6-digit reset code is: <b>%s</b></p>
+			<p>This code will expire in 15 minutes. If you did not request this, please ignore this email.</p>
+		`, msg.Data["code"])
 
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)

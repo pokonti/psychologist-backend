@@ -272,7 +272,7 @@ func (ac *AuthController) RefreshToken(c *gin.Context) {
 
 	if user.IsBlocked {
 		config.DB.Model(&user).Update("refresh_token", "")
-		c.JSON(http.StatusForbidden, gin.H{"error": "Account blocked. Access revoked."})
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Error: "Account blocked. Access revoked."})
 		return
 	}
 
@@ -299,4 +299,87 @@ func (ac *AuthController) Logout(c *gin.Context) {
 	config.DB.Model(&models.User{}).Where("id = ?", userID).Update("refresh_token", "")
 
 	c.JSON(http.StatusOK, models.MessageResponse{Message: "Successfully logged out"})
+}
+
+// ForgotPassword godoc
+// @Summary      Request a password reset code
+// @Description  Triggers a 6-digit verification code to be sent to the user's email via the Notification Service.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.ForgotPasswordInput true "User email for reset"
+// @Success      200 {object} models.MessageResponse "Success message (always returned for security)"
+// @Failure      400 {object} models.ErrorResponse "Invalid email format"
+// @Router       /auth/forgot-password [post]
+func (ac *AuthController) ForgotPassword(c *gin.Context) {
+	var input models.ForgotPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusOK, models.MessageResponse{Message: "If this email is registered, a reset code has been sent."})
+		return
+	}
+
+	// Generate Reset Code
+	resetCode := utils.GenerateRandomCode()
+	user.VerificationCode = resetCode
+	user.CodeExpiresAt = time.Now().Add(15 * time.Minute)
+	config.DB.Save(&user)
+
+	// Publish to RabbitMQ
+	msg := clients.NotificationMessage{
+		Type:    "password_reset",
+		ToEmail: user.Email,
+		Data: map[string]string{
+			"code": resetCode,
+		},
+	}
+	ac.RabbitMQ.PublishNotification(msg)
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Reset code sent to your email."})
+}
+
+// ResetPassword godoc
+// @Summary      Reset password using code
+// @Description  Updates the account password after verifying the 6-digit reset code and email combination.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.ResetPasswordInput true "Email, code, and new password"
+// @Success      200 {object} models.MessageResponse "Password updated successfully"
+// @Failure      400 {object} models.ErrorResponse "Invalid input or short password"
+// @Failure      401 {object} models.ErrorResponse "Invalid or expired reset code"
+// @Failure      404 {object} models.ErrorResponse "User not found"
+// @Router       /auth/reset-password [post]
+func (ac *AuthController) ResetPassword(c *gin.Context) {
+	var input models.ResetPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{Error: "User not found"})
+		return
+	}
+
+	// Verify Code
+	if user.VerificationCode != input.Code || time.Now().After(user.CodeExpiresAt) {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: "Invalid or expired reset code"})
+		return
+	}
+
+	// Hash and Update New Password
+	hashedPassword, _ := utils.HashPassword(input.NewPassword)
+	user.Password = hashedPassword
+	user.VerificationCode = "" // Clear code after use
+	user.RefreshToken = ""     // Logout user from all devices for security
+	config.DB.Save(&user)
+
+	c.JSON(http.StatusOK, models.MessageResponse{Message: "Password updated successfully. Please log in."})
 }
