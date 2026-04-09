@@ -19,8 +19,8 @@ func SetupRoutes(r *gin.Engine, authController *handlers.AuthController) {
 			auth.POST("/login", authController.Login)
 			auth.POST("/refresh", authController.RefreshToken)
 			auth.POST("/logout", authController.Logout)
-			api.POST("/forgot-password", authController.ForgotPassword)
-			api.POST("/reset-password", authController.ResetPassword)
+			auth.POST("/forgot-password", authController.ForgotPassword)
+			auth.POST("/reset-password", authController.ResetPassword)
 		}
 
 		admin := api.Group("/admin")
