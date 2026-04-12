@@ -719,15 +719,16 @@ func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
 	// --- SQL AGGREGATIONS ---
 
 	// 2. Conducted Sessions & Working Hours
-	// (Status is 'booked' and time is in the past)
-	var conductedDuration int64
-	config.DB.Model(&models.Slot{}).
-		Where("psychologist_id = ? AND status = ? AND start_time BETWEEN ? AND ?", psychID, models.StatusBooked, start, end).
-		Where("start_time < ?", time.Now()).
-		Count(&stats.TotalConducted).
-		Select("SUM(duration)").Scan(&conductedDuration)
+	query := config.DB.Model(&models.Slot{}).
+		Where("psychologist_id = ? AND status = ?", psychID, models.StatusBooked).
+		Where("start_time BETWEEN ? AND ?", start, end).
+		Where("start_time < ?", time.Now().UTC())
 
-	stats.TotalWorkingHours = float64(conductedDuration) / 60.0
+	if err := query.Count(&stats.TotalConducted).Error; err != nil {
+		log.Printf("Error counting conducted sessions: %v", err)
+	}
+
+	stats.TotalWorkingHours = (float64(stats.TotalConducted) * 50.0) / 60.0
 
 	// 3. Unique Students Seen
 	config.DB.Model(&models.Slot{}).
