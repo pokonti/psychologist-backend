@@ -176,6 +176,17 @@ func processMessage(body []byte, bookingClient bookings.BookingServiceClient) {
 			<br>
 			<p><i>Note: Waitlist alerts are sent to everyone waiting for this day. Booking is first-come, first-served.</i></p>
 		`, msg.Data["psychologist_name"], msg.Data["date"])
+
+		tgChatID := msg.Data["telegram_chat_id"]
+		if tgChatID != "" {
+			tgText := fmt.Sprintf("🚨 <b>Good News!</b>\nA slot just opened up for <b>%s</b> on <b>%s</b>. Log in now to book it!",
+				msg.Data["psychologist_name"], msg.Data["date"])
+
+			err := telegram.SendMessage(tgChatID, tgText)
+			if err != nil {
+				log.Printf("Failed to send Waitlist Telegram: %v", err)
+			}
+		}
 	case "new_recommendation":
 		subject = "Post-Session Recommendations 📝"
 		htmlBody = fmt.Sprintf(`

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"log"
 	"time"
 
@@ -36,43 +35,6 @@ func combineDateAndTime(date time.Time, timeStr string) (time.Time, error) {
 	)
 
 	return localTime.UTC(), nil
-}
-
-// notifyWaitlist is a background helper that finds waitlisted students and emails them
-func (h *BookingHandler) notifyWaitlist(psychID string, dateStr string, psychName string) {
-	var waitlist []models.WaitlistEntry
-	config.DB.Where("psychologist_id = ? AND date = ?", psychID, dateStr).Find(&waitlist)
-
-	if len(waitlist) == 0 {
-		return
-	}
-
-	var studentIDs []string
-	for _, w := range waitlist {
-		studentIDs = append(studentIDs, w.StudentID)
-	}
-
-	resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
-		Ids: studentIDs,
-	})
-	if err != nil {
-		log.Printf("Failed to fetch waitlist users: %v", err)
-		return
-	}
-
-	for _, profile := range resp.Profiles {
-		if profile.Email != "" {
-			msg := clients.NotificationMessage{
-				Type:    "waitlist_alert",
-				ToEmail: profile.Email,
-				Data: map[string]string{
-					"psychologist_name": psychName,
-					"date":              dateStr,
-				},
-			}
-			h.RabbitMQ.PublishNotification(msg)
-		}
-	}
 }
 
 // Helper function to get the start and end of a week for a given date

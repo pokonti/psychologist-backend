@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pokonti/psychologist-backend/booking-service/config"
+	"github.com/pokonti/psychologist-backend/booking-service/internal/clients"
 	"github.com/pokonti/psychologist-backend/booking-service/internal/models"
 	"github.com/pokonti/psychologist-backend/proto/userprofile"
 )
@@ -144,4 +146,42 @@ func (h *BookingHandler) LeaveWaitlist(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.MessageResponse{Message: "Removed from waitlist"})
+}
+
+// notifyWaitlist is a background helper that finds waitlisted students and emails them
+func (h *BookingHandler) notifyWaitlist(psychID string, dateStr string, psychName string) {
+	var waitlist []models.WaitlistEntry
+	config.DB.Where("psychologist_id = ? AND date = ?", psychID, dateStr).Find(&waitlist)
+
+	if len(waitlist) == 0 {
+		return
+	}
+
+	var studentIDs []string
+	for _, w := range waitlist {
+		studentIDs = append(studentIDs, w.StudentID)
+	}
+
+	resp, err := h.UserClient.GetBatchUserProfiles(context.Background(), &userprofile.GetBatchUserProfilesRequest{
+		Ids: studentIDs,
+	})
+	if err != nil {
+		log.Printf("Failed to fetch waitlist users: %v", err)
+		return
+	}
+
+	for _, profile := range resp.Profiles {
+		if profile.Email != "" {
+			msg := clients.NotificationMessage{
+				Type:    "waitlist_alert",
+				ToEmail: profile.Email,
+				Data: map[string]string{
+					"psychologist_name": psychName,
+					"date":              dateStr,
+					"telegram_chat_id":  profile.TelegramChatId,
+				},
+			}
+			h.RabbitMQ.PublishNotification(msg)
+		}
+	}
 }
