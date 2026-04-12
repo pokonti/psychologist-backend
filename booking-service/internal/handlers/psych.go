@@ -696,7 +696,6 @@ func (h *BookingHandler) GetPsychologistStats(c *gin.Context) {
 func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
 	psychID := c.GetHeader("X-User-ID")
 
-	// 1. Parse Date Range
 	startStr := c.Query("start_date")
 	endStr := c.Query("end_date")
 
@@ -718,7 +717,7 @@ func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
 
 	// --- SQL AGGREGATIONS ---
 
-	// 2. Conducted Sessions & Working Hours
+	// Conducted Sessions & Working Hours
 	query := config.DB.Model(&models.Slot{}).
 		Where("psychologist_id = ? AND status = ?", psychID, models.StatusBooked).
 		Where("start_time BETWEEN ? AND ?", start, end).
@@ -730,21 +729,23 @@ func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
 
 	stats.TotalWorkingHours = (float64(stats.TotalConducted) * 50.0) / 60.0
 
-	// 3. Unique Students Seen
+	// Unique Students Seen
 	config.DB.Model(&models.Slot{}).
 		Where("psychologist_id = ? AND status = ? AND student_id IS NOT NULL", psychID, models.StatusBooked).
 		Distinct("student_id").
 		Count(&stats.UniqueStudentsCount)
 
-	// 4. Format Breakdown
 	config.DB.Model(&models.Slot{}).
-		Where("psychologist_id = ? AND status = ? AND booking_type = ?", psychID, models.StatusBooked, "online").
+		Where("psychologist_id = ? AND status = ? AND booking_type = ? AND start_time < ?",
+			psychID, models.StatusBooked, "online", time.Now().UTC()).
 		Count(&stats.OnlineSessions)
+
 	config.DB.Model(&models.Slot{}).
-		Where("psychologist_id = ? AND status = ? AND booking_type = ?", psychID, models.StatusBooked, "offline").
+		Where("psychologist_id = ? AND status = ? AND booking_type = ? AND start_time < ?",
+			psychID, models.StatusBooked, "offline", time.Now().UTC()).
 		Count(&stats.OfflineSessions)
 
-	// 5. Cancellation Analytics (From LOGS table)
+	// Cancellation Analytics (From LOGS table)
 	config.DB.Model(&models.BookingLog{}).
 		Where("psychologist_id = ? AND action = ? AND timestamp BETWEEN ? AND ?", psychID, "canceled_by_student", start, end).
 		Count(&stats.CancelledByStudent)
@@ -755,13 +756,13 @@ func (h *BookingHandler) GetDetailedPsychologistStats(c *gin.Context) {
 
 	stats.TotalCancelled = stats.CancelledByStudent + stats.CancelledByPsych
 
-	// 6. Rate Calculation
+	// Rate Calculation
 	totalRequests := stats.TotalConducted + stats.TotalCancelled
 	if totalRequests > 0 {
 		stats.CancellationRate = (float64(stats.TotalCancelled) / float64(totalRequests)) * 100
 	}
 
-	// 7. Average Rating
+	// Average Rating
 	config.DB.Model(&models.Slot{}).
 		Where("psychologist_id = ? AND rating > 0", psychID).
 		Select("AVG(rating)").Scan(&stats.AverageRating)
