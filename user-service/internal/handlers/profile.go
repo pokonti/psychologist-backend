@@ -59,6 +59,7 @@ func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 		})
 		return
 	}
+	profile.IsTelegramLinked = profile.TelegramChatID != ""
 
 	c.JSON(http.StatusOK, profile)
 }
