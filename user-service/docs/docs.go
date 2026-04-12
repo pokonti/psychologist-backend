@@ -567,6 +567,9 @@ const docTemplate = `{
                 "is_blocked": {
                     "type": "boolean"
                 },
+                "is_telegram_linked": {
+                    "type": "boolean"
+                },
                 "password": {
                     "type": "string"
                 },
